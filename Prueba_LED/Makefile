@@ -1,17 +1,18 @@
-LIBS=libs/simpleGPIO
+LIBS=$(wildcard libs/*)
 INCLUDE_PATH=libs/
 
 main_exec: libraries
-	gcc main/main.c $(wildcard libraries/*) -I$(INCLUDE_PATH) -o main_exec
+	g++ main/main.cpp $(wildcard libraries/*) -I$(INCLUDE_PATH) -o ejecutable
 
 libraries:
 	mkdir libraries/
 	for dir in $(LIBS); do \
 		cd $$dir; \
-		gcc -c *.c -I../; \
+		g++ -c *.c -I../; \
+		g++ -c *.cpp -I../; \
 		mv *.o ../../libraries; \
 		cd -; \
 	done
 
 clean:
-	rm -rf libraries/ main_exec
+	rm -rf libraries/ ejecutable
