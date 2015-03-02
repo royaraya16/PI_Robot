@@ -1,4 +1,4 @@
-
+#include "pwm.h"
 
 
 //// eQep and pwmss registers, more in tipwmss.h

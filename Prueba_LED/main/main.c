@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include "GPIO/SimpleGPIO.h"
 
-using namespace std;
 
 #define RED_LED 66
 
