@@ -11,7 +11,7 @@
 int main(int argc, char *argv[]){
 
 	if(argc > 1){
-			printf("HOLA");
+			printf("HOLA ROY Probandobotones\n");
 	}
 
 	gpio_export(RED_LED);
