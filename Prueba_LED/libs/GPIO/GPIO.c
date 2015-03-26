@@ -27,3 +27,5 @@ int init_GPIO(){
 	
 	gpio_set_value(MOT_STBY, LOW);	
 }
+
+

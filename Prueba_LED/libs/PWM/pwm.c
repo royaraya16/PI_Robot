@@ -2,8 +2,6 @@
 
 #include "pwm.h"
 
-
-
 // pwm stuff
 // motors 1-2 driven by pwm 1A, 2A respectively
 
@@ -14,8 +12,9 @@ char pwm_files[][64] = {"/sys/devices/ocp.3/pwm_test_P9_14.12/",
 FILE *pwm_duty_pointers[2]; //store pointers to 2 pwm channels for frequent writes
 int pwm_period_ns=0; //stores current pwm period in nanoseconds
 
+extern unsigned int out_gpio_pins[];
 
-int initialize_pwm(){
+int init_PWM(){
 	
 	//Que hace initialize?
 	//1- Ajusta la polaridad de los PWM
@@ -95,8 +94,8 @@ int set_motor(int motor, float duty){
 		duty=-duty;
 	}
 	
-	gpio_set_value((motor-1)*2,a);
-	gpio_set_value((motor-1)*2+1,b);
+	gpio_set_value(out_gpio_pins[(motor-1)*2],a);
+	gpio_set_value(out_gpio_pins[(motor-1)*2+1],b);
 	fprintf(pwm_duty_pointers[motor-1], "%d", (int)(duty*pwm_period_ns));	
 	fflush(pwm_duty_pointers[motor-1]);
 	return 0;
