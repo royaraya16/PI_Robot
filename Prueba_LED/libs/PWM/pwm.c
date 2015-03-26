@@ -1,36 +1,35 @@
+
+
 #include "pwm.h"
 
 
-//// eQep and pwmss registers, more in tipwmss.h
-#define PWM0_BASE   0x48300000
-#define PWM1_BASE   0x48302000
-#define PWM2_BASE   0x48304000
-#define EQEP_OFFSET  0x180
-
-#define MOT_STBY  20	//gpio0.20  P9.41
 
 // pwm stuff
-// motors 1-4 driven by pwm 1A, 1B, 2A, 2B respectively
+// motors 1-2 driven by pwm 1A, 2A respectively
+
 char pwm_files[][64] = {"/sys/devices/ocp.3/pwm_test_P9_14.12/",
-							 "/sys/devices/ocp.3/pwm_test_P9_16.13/",
-							 "/sys/devices/ocp.3/pwm_test_P8_19.14/",
-							 "/sys/devices/ocp.3/pwm_test_P8_13.15/"
+							 "/sys/devices/ocp.3/pwm_test_P8_19.14/"
 };
-FILE *pwm_duty_pointers[4]; //store pointers to 4 pwm channels for frequent writes
+
+FILE *pwm_duty_pointers[2]; //store pointers to 2 pwm channels for frequent writes
 int pwm_period_ns=0; //stores current pwm period in nanoseconds
 
 
-// eQEP Encoder mmap arrays
-volatile char *pwm_map_base[3];
-
 int initialize_pwm(){
+	
+	//Que hace initialize?
+	//1- Ajusta la polaridad de los PWM
+	//2- Abre los archivos de duty y los apunta a los punteros
+	//3- Lee el periodo que tienen los pwm y lo guarda en una variable global
 
-//Set up PWM
 	char path[128]; // buffer to store file path string
 	FILE *fd; 			// opened and closed for each file
+	
+	//Ajustando Polaridad
+	
 	printf("Initializing PWM\n");
 	int i=0;
-	for(i=0; i<4; i++){
+	for(i=0; i<2; i++){
 		strcpy(path, pwm_files[i]);
 		strcat(path, "polarity");
 		fd = fopen(path, "a");
@@ -44,12 +43,18 @@ int initialize_pwm(){
 		fclose(fd);
 	}
 	
+	//Abriendo los archivos de duty
+	//No importa que se dejen abiertos, el sistema operativo los cierra cuando
+	//el programa se termina
+	
 	//leave duty cycle file open for future writes
-	for(i=0; i<4; i++){
+	for(i=0; i<2; i++){
 		strcpy(path, pwm_files[i]);
 		strcat(path, "duty");
 		pwm_duty_pointers[i] = fopen(path, "a");
 	}
+	
+	//Leyendo el periodo en nanosegundos y guardando en variable global
 	
 	//read in the pwm period defined in device tree overlay .dts
 	strcpy(path, pwm_files[0]);
@@ -60,16 +65,16 @@ int initialize_pwm(){
 		return -1;
 	}
 	fscanf(fd,"%i", &pwm_period_ns);
-	fclose(fd);
-	
+	fclose(fd);	
 }
 
 
 int set_motor(int motor, float duty){
+	
 	PIN_VALUE a;
 	PIN_VALUE b;
-	if(motor>4 || motor<1){
-		printf("enter a motor value between 1 and 4\n");
+	if(motor>2 || motor<1){
+		printf("enter a motor value between 1 and 2\n");
 		return -1;
 	}
 	//check that the duty cycle is within +-1
@@ -89,27 +94,30 @@ int set_motor(int motor, float duty){
 		b=HIGH;
 		duty=-duty;
 	}
-	gpio_set_value(66,a);
-	gpio_set_value(19,b);
+	
+	gpio_set_value((motor-1)*2,a);
+	gpio_set_value((motor-1)*2+1,b);
 	fprintf(pwm_duty_pointers[motor-1], "%d", (int)(duty*pwm_period_ns));	
 	fflush(pwm_duty_pointers[motor-1]);
 	return 0;
 }
 
 int kill_pwm(){
+	//Que hace kill_pwm?
+	//Pone todos los valores de pwm en 0, para que no brinque cuando se encienda
 	int ch;
 	if(pwm_duty_pointers[0] == NULL){
 		printf("opening pwm duty files\n");
 		char path[128];
 		int i = 0;
-		for(i=0; i<4; i++){
+		for(i=0; i<2; i++){
 			strcpy(path, pwm_files[i]);
 			strcat(path, "duty");
 			pwm_duty_pointers[i] = fopen(path, "a");
 		}
 		printf("opened pwm duty files\n");
 	}
-	for(ch=0;ch<4;ch++){
+	for(ch=0;ch<2;ch++){
 		fprintf(pwm_duty_pointers[ch], "%d", 0);	
 		fflush(pwm_duty_pointers[ch]);
 	}

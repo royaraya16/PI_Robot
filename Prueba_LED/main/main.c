@@ -3,19 +3,18 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include "GPIO/SimpleGPIO.h"
+#include "GPIO/GPIO.h"
 
-
-#define RED_LED 66
+//Que falta?
+//PWM - eQUEP - ADC - i2c - IMU
 
 int main(int argc, char *argv[]){
 
+	init_GPIO();
+	
 	if(argc > 1){
 			printf("HOLA ROY Probandobotones\n");
 	}
-
-	gpio_export(RED_LED);
-	gpio_set_dir(RED_LED, OUTPUT_PIN);
 	
 	if(argc>1){
 		gpio_set_value(RED_LED, LOW);
