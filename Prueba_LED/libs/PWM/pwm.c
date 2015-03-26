@@ -7,6 +7,8 @@
 #define PWM2_BASE   0x48304000
 #define EQEP_OFFSET  0x180
 
+#define MOT_STBY  20	//gpio0.20  P9.41
+
 // pwm stuff
 // motors 1-4 driven by pwm 1A, 1B, 2A, 2B respectively
 char pwm_files[][64] = {"/sys/devices/ocp.3/pwm_test_P9_14.12/",
@@ -24,8 +26,10 @@ volatile char *pwm_map_base[3];
 int initialize_pwm(){
 
 //Set up PWM
+	char path[128]; // buffer to store file path string
+	FILE *fd; 			// opened and closed for each file
 	printf("Initializing PWM\n");
-	i=0;
+	int i=0;
 	for(i=0; i<4; i++){
 		strcpy(path, pwm_files[i]);
 		strcat(path, "polarity");
@@ -64,9 +68,6 @@ int initialize_pwm(){
 int set_motor(int motor, float duty){
 	PIN_VALUE a;
 	PIN_VALUE b;
-	if(state == UNINITIALIZED){
-		initialize_cape();
-	}
 	if(motor>4 || motor<1){
 		printf("enter a motor value between 1 and 4\n");
 		return -1;
@@ -88,8 +89,8 @@ int set_motor(int motor, float duty){
 		b=HIGH;
 		duty=-duty;
 	}
-	gpio_set_value(out_gpio_pins[(motor-1)*2],a);
-	gpio_set_value(out_gpio_pins[(motor-1)*2+1],b);
+	gpio_set_value(66,a);
+	gpio_set_value(19,b);
 	fprintf(pwm_duty_pointers[motor-1], "%d", (int)(duty*pwm_period_ns));	
 	fflush(pwm_duty_pointers[motor-1]);
 	return 0;

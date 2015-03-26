@@ -1,7 +1,7 @@
 //Codigo para probar los GPIO
 
-#include <iostream>
-#include <string>
+#include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include "GPIO/SimpleGPIO.h"
 
@@ -12,7 +12,7 @@ using namespace std;
 int main(int argc, char *argv[]){
 
 	if(argc > 1){
-		cout << "Hola Mundo" << endl;
+			printf("HOLA");
 	}
 
 	gpio_export(RED_LED);
