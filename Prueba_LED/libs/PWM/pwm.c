@@ -104,6 +104,7 @@ int set_motor(int motor, float duty){
 int kill_pwm(){
 	//Que hace kill_pwm?
 	//Pone todos los valores de pwm en 0, para que no brinque cuando se encienda
+	
 	int ch;
 	if(pwm_duty_pointers[0] == NULL){
 		printf("opening pwm duty files\n");
