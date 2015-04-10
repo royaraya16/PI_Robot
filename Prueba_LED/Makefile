@@ -3,16 +3,12 @@ INCLUDE_PATH=libs/
 
 CC=gcc
 CROSS_CC=arm-linux-gnueabihf-gcc-4.7
-CFLAGS=-Wall -fsingle-precision-constant -fPIC -I
-LFLAGS=-lm -lrt -pthread -shared
-
-# add -DI2C_DEBUG for debugging
-DEFS = -DEMPL_TARGET_LINUX -DMPU9150 -DAK8975_SECONDARY
+CFLAGS=-I
 
 NAME=ejecutable
 
 cross: bibliotecas
-	$(CROSS_CC) main/main.c $(wildcard bibliotecas/*) $(LFLAGS) $(CFLAGS)$(INCLUDE_PATH) -o $(NAME)
+	$(CROSS_CC) main/main.c $(wildcard bibliotecas/*) $(CFLAGS)$(INCLUDE_PATH) -o $(NAME)
 
 native: bibliotecas_native
 	$(CC) main/main.c $(wildcard bibliotecas/*) $(CFLAGS)$(INCLUDE_PATH) -o $(NAME)
@@ -21,7 +17,7 @@ bibliotecas:
 	mkdir bibliotecas/
 	for dir in $(LIBS); do \
 		cd $$dir; \
-		$(CROSS_CC) $(DEFS) -c *.c $(CFLAGS)../; \
+		$(CROSS_CC) -c *.c $(CFLAGS)../; \
 		mv *.o ../../bibliotecas; \
 		cd -; \
 	done
