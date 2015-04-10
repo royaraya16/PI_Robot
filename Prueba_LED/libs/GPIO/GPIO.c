@@ -3,11 +3,12 @@
 
 #include "GPIO/GPIO.h"
 
-#define NUM_OUT_PINS 7
+#define NUM_OUT_PINS 11
 
 unsigned int out_gpio_pins[] = 
 					{MDIR1A, MDIR1B, MDIR2A, MDIR2B, 
-					 MOT_STBY, GRN_LED, RED_LED};
+					 MOT_STBY, GRN_LED, RED_LED, LED_1,
+					 LED_2, LED_3, LED_4};
 
 int init_GPIO(){
 	
@@ -25,7 +26,9 @@ int init_GPIO(){
 	
 	// Desactivar el puente H, por si las moscas
 	
-	gpio_set_value(MOT_STBY, LOW);	
+	//gpio_set_value(MOT_STBY, LOW);
+	
+	return 0;
 }
 
 

@@ -35,7 +35,6 @@ Bit 0 /
 		"P8.7",		/*LED_RED*/
 		"P8.8",		/*LED_GRN*/
 		"P8.9",		/*PAUSE_BTN*/
-		"P8.10",	/*MODE_BTN*/
 		
 		"P8.11",	/*QEP_2B*/
 		"P8.12",	/*QEP_2A*/
@@ -60,23 +59,22 @@ Bit 0 /
 		
 		*/
 		 
-		"P9.12",	/*MDIR_1A*/
-		"P9.13",	/*MDIR_1B*/
+		"P9.27",	/*MDIR_1A*/
+		"P9.42",	/*MDIR_1B*/
 				
 		"P9.14",	/*PWM_1A*/
 		"ehrpwm1A",
 		
-		"P9.15",	/*MDIR_2A*/
+		"P9.23",	/*MDIR_2A*/
 		
 		"P9.25",	/*IMU_INT*/
 
 		
 		"P9.35", 	/*V_DIV_BAT*/
-		"P9.36", 	/*V_DIV_DC*/
 		"tscadc",
 		
 		
-		"P9.41",	/*MOT_STBY*/		
+		"P9.41";	/*MOT_STBY*/		
 		
 	
     fragment@0 {
@@ -116,7 +114,6 @@ Bit 0 /
 			interrupt_pins: pinmux_interrupt_pins{
 				pinctrl-single,pins = <
 					0x09c 0x37	/*P8.9  Pause BUTTON, input pullup*/
-					0x098 0x37	/*P8.10 MODE BUTTON input pullup*/
 					0x1AC 0x37	/*P9.25 MPU-9150 INTERRUPT IN*/
 				>;
 			};
@@ -134,9 +131,9 @@ Bit 0 /
 					0x02C 0x0F	/*P8.17 LED_4*/
 					0x0c4 0x0F	/*P8.38 MDIR_2B*/
 								
-					0x078 0x0F	/*P9.12 MDIR_1A*/
-					0x074 0x0F	/*P9.13 MDIR_1B*/
-					0x040 0x0F	/*P9.15 MDIR_2A*/
+					0x1A4 0x0F	/*P9.27 MDIR_1A*/
+					0x164 0x0F	/*P9.42 MDIR_1B*/
+					0x040 0x0F	/*P9.23 MDIR_2A*/
 					0x1b4 0x0F	/*P9.41 MOT_STBY*/
 				>;
 			};			
@@ -284,13 +281,6 @@ Bit 0 /
                     gpios = <&gpio3 5 0x5>; /* really gpio_2[5] */
                     gpio-key,wakeup;
                 };                
-                switch_x2 {
-                    label = "MODE_BTN";
-                    debounce_interval = <50>;
-                    linux,code = <2>;
-                    gpios = <&gpio3 4 0x5>; /*really gpio_2[4]*/
-                    gpio-key,wakeup;
-                };  
             };
         };
     };

@@ -5,8 +5,10 @@
 // pwm stuff
 // motors 1-2 driven by pwm 1A, 2A respectively
 
+//REVISAR ESTOS DIRECTORIOS SI SALE SEGMENTATION FAULT
+
 char pwm_files[][64] = {"/sys/devices/ocp.3/pwm_test_P9_14.12/",
-							 "/sys/devices/ocp.3/pwm_test_P8_19.14/"
+							 "/sys/devices/ocp.3/pwm_test_P8_19.13/"
 };
 
 FILE *pwm_duty_pointers[2]; //store pointers to 2 pwm channels for frequent writes
@@ -64,7 +66,9 @@ int init_PWM(){
 		return -1;
 	}
 	fscanf(fd,"%i", &pwm_period_ns);
-	fclose(fd);	
+	fclose(fd);
+	
+	return 0;
 }
 
 

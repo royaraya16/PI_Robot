@@ -42,9 +42,13 @@ int main(int argc, char *argv[]){
 			num = (float)conv/100.0;
 			printf("PWM = %3.2f\n", num);
 		}
+		
+		//set_motor(1, num);
 	}
-	
-	set_motor(1, num);
+
+	else{
+		printf("Debe poner un numero\n");
+		}	
 
 	return 0;
 }
