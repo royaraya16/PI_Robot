@@ -1,4 +1,4 @@
-#include "IMU/IMU.h"
+#include "drop_bone_imu.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +23,6 @@ int print_usage_flag;
 int silent_flag;
 
 int main(int argc, char** argv){
-	init_IMU();
     parse_args(argc, argv);
     if(print_usage_flag) {
         print_usage();
@@ -112,18 +111,6 @@ int main(int argc, char** argv){
             }
         }
     }
-}
-
-int init_IMU(){
-	//set up gpio interrupt pin connected to imu
-	if(gpio_export(INTERRUPT_PIN)){
-		printf("can't export gpio %d \n", INTERRUPT_PIN);
-		return (-1);
-	}
-	gpio_set_dir(INTERRUPT_PIN, INPUT_PIN);
-	gpio_set_edge(INTERRUPT_PIN, "falling");  // Can be rising, falling or both
-	
-	return 0;
 }
 
 void parse_args(int argc, char** argv) {

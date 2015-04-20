@@ -1,3 +1,6 @@
+#ifndef drop_bone_imu_h
+#define drop_bone_imu_h
+
 #define MPU6050 // The Invensense Motion Driver code needs this
 
 #define BBB_I2C_FILE "/dev/i2c-1"
@@ -9,13 +12,13 @@
 
 #define PI 3.14159
 #define QUAT_SCALE (1.0/1073741824)
-#define GPIO_INT_FILE "/sys/class/gpio/gpio117/value" 
-
-#define INTERRUPT_PIN 117  //gpio3.21 P9.25
+#define GPIO_INT_FILE "/sys/class/gpio/gpio14/value" 
 
 #define GYRO_SCALE (PI/(180.0*16.384))
 
 #define ACCEL_SCALE (1.0/16384)
+
+#define NOSENTVALS 13 // the numver of values to be sent through UDP
 
 #define THRESHOLD (0.1*PI/180.0) // the amount that the IMU Euler values have to change less than to indicate that calibration has finished
 
@@ -23,7 +26,7 @@
 
 #include "inv_mpu_dmp_motion_driver.h"
 #include "inv_mpu.h"
-#include "GPIO/SimpleGPIO.h"
+
 
 
 /* The following functions must be defined for this platform:
@@ -42,7 +45,6 @@
 #define log_i printf
 
 int init();
-int init_IMU();
 
 int i2c_write(unsigned char slave_addr, unsigned char reg_addr,
         unsigned char length, unsigned char const *data);
@@ -72,3 +74,5 @@ unsigned short inv_row_2_scale(const signed char *row);
 unsigned short inv_orientation_matrix_to_scalar(const signed char *mtx);
 
 void advance_spinner();
+
+#endif
