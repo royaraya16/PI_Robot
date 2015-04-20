@@ -7,6 +7,10 @@
 #include "PWM/PWM.h"
 #include "ADC/ADC.h"
 #include "eQEP/eQEP.h"
+#include "IMU/IMU.h"
+#include <poll.h>
+#include <time.h>
+#include <math.h>		// atan2 and fabs
 
 // lock file location
 // file created to indicate running process

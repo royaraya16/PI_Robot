@@ -41,7 +41,6 @@
 
 #define log_i printf
 
-int init();
 int init_IMU();
 
 int i2c_write(unsigned char slave_addr, unsigned char reg_addr,
