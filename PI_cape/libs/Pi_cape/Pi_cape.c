@@ -13,6 +13,12 @@ int set_state(enum state_t new_state){
 }
 
 
+//function pointers for events initialized to null_func()
+//instead of containing a null pointer
+int null_func(){
+	return 0;
+}
+
 int pi_cape_ON(){
 	
 	//Chequear que no este corriendo el programa otra vez
@@ -28,7 +34,7 @@ int pi_cape_ON(){
 	init_eQEP();
 	
 	//inicializar IMU
-	//init_IMU();
+	init_IMU();
 	
 	//inicializar interrupts
 	//init_interrupts();
@@ -38,6 +44,10 @@ int pi_cape_ON(){
 	
 	//Desactivar motores por si las moscas
 	disable_motors();
+	
+	// Start Signal Handler
+	printf("Enabling exit signal handler\n");
+	signal(SIGINT, ctrl_c);	
 	
 	//Estableciendo el estado en pausado, esperando que se posicione verticalmente
 	set_state(PAUSED);

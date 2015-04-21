@@ -5,7 +5,7 @@
 #define MPU6050_ADDR 0x68
 #define MPU6050_WHO_AM_I 0x75
 
-#define DEFAULT_MPU_HZ 10
+#define DEFAULT_MPU_HZ 200
 
 #define PI 3.14159
 #define QUAT_SCALE (1.0/1073741824)
@@ -21,9 +21,16 @@
 
 #define CALIBRATION_TIME 20.0
 
+#define DEG_TO_RAD 		0.0174532925199
+#define RAD_TO_DEG 	 	57.295779513
+
+//#define MAX_BUF 64
+#define MAX_BUF_IMU 1 //en dropbone estaba en 1
+
 #include "inv_mpu_dmp_motion_driver.h"
 #include "inv_mpu.h"
 #include "GPIO/SimpleGPIO.h"
+#include "IMU/quaternion.h"
 
 
 /* The following functions must be defined for this platform:
@@ -40,6 +47,21 @@
  */
 
 #define log_i printf
+
+typedef struct {
+	short rawGyro[3];
+	short rawAccel[3];
+	long rawQuat[4];
+	unsigned long dmpTimestamp;
+
+	//short calibratedAccel[3];
+
+	quaternion_t fusedQuat;
+	vector3d_t fusedEuler;
+
+	float Roll;
+	
+} mpudata_t;
 
 int init_IMU();
 
@@ -71,3 +93,11 @@ unsigned short inv_row_2_scale(const signed char *row);
 unsigned short inv_orientation_matrix_to_scalar(const signed char *mtx);
 
 void advance_spinner();
+
+int set_imu_interrupt_func(int (*func)(void));
+void* imu_interrupt_handler(void* ptr);
+
+int data_ready();
+int mpu6050_read_dmp(mpudata_t *mpu);
+int data_fusion(mpudata_t *mpu);
+int init_IMU_thread();

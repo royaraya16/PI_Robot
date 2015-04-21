@@ -1,5 +1,4 @@
 #include "IMU/IMU.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <linux/i2c-dev.h>
@@ -16,7 +15,17 @@ static int fd; // file descriptor for the I2C bus
 static signed char gyro_orientation[9] = {0,  1,  0,
         -1, 0,  0,
         0,  0,  1};
+    
         
+short accel[3], gyro[3], sensors[1];
+long quat[4];
+unsigned long timestamp;
+unsigned char more[0];
+
+float angles[13];
+        
+//funcion que se va a ejecutar cada vez que haya datos del IMU disponibles
+//int (*imu_interrupt_func)();
 
 int init_IMU(){
 	
@@ -196,4 +205,92 @@ void advance_spinner() {
     
     fflush(stdout);
     pos = (pos + 1) % nbars;
+}
+
+int set_imu_interrupt_func(int (*func)(void)){
+	imu_interrupt_func = func;
+	return 0;
+}
+
+void* imu_interrupt_handler(void* ptr){
+	
+	struct pollfd fdset[1];
+	char buf[1];
+	int imu_gpio_fd = gpio_fd_open(INTERRUPT_PIN);
+	fdset[0].fd = imu_gpio_fd;
+	fdset[0].events = POLLPRI; //interrupt de alta prioridad
+	
+	//While hasta que el programa termine
+	
+	while(get_state() != EXITING) {
+		// system hangs here until IMU FIFO interrupt
+		poll(fdset, 1, POLL_TIMEOUT);        
+		if (fdset[0].revents & POLLPRI) {
+			
+			read(fdset[0].fd, buf, MAX_BUF_IMU);
+			// user selectable with set_inu_interrupt_func() defined above
+			imu_interrupt_func(); 
+		}
+	}
+	
+	gpio_fd_close(imu_gpio_fd);
+	
+	return 0;	
+}
+
+int mpu6050_read_dmp(mpudata_t *mpu)
+{
+	short sensors;
+	unsigned char more;
+	float angles[13];
+
+	if (dmp_read_fifo(mpu->rawGyro, mpu->rawAccel, mpu->rawQuat, &mpu->dmpTimestamp, &sensors, &more) < 0) {
+		printf("dmp_read_fifo() failed\n");
+		//return -1;
+	}
+
+	while (more) {
+		// Fell behind, reading again
+		if (dmp_read_fifo(mpu->rawGyro, mpu->rawAccel, mpu->rawQuat, &mpu->dmpTimestamp, &sensors, &more) < 0) {
+			printf("dmp_read_fifo() failed_en More\n");
+			return -1;
+		}
+	}
+		
+	data_fusion(mpu);
+
+	return 0;
+}
+
+int data_fusion(mpudata_t *mpu)
+{
+	quaternion_t dmpQuat;
+	vector3d_t dmpEuler;
+	
+	dmpQuat[QUAT_W] = (float)mpu->rawQuat[QUAT_W];
+	dmpQuat[QUAT_X] = (float)mpu->rawQuat[QUAT_X];
+	dmpQuat[QUAT_Y] = (float)mpu->rawQuat[QUAT_Y];
+	dmpQuat[QUAT_Z] = (float)mpu->rawQuat[QUAT_Z];
+
+	quaternionNormalize(dmpQuat);	
+	quaternionToEuler(dmpQuat, dmpEuler);
+
+	mpu->fusedEuler[VEC3_X] = dmpEuler[VEC3_X];
+	mpu->fusedEuler[VEC3_Y] = -dmpEuler[VEC3_Y];
+	mpu->fusedEuler[VEC3_Z] = 0;
+
+	eulerToQuaternion(mpu->fusedEuler, mpu->fusedQuat);
+
+	return 0;
+}
+
+int init_IMU_thread(){
+	
+	set_imu_interrupt_func(&null_func);
+	pthread_t imu_interrupt_thread;
+	struct sched_param params;
+	pthread_create(&imu_interrupt_thread, NULL, imu_interrupt_handler, (void*) NULL);
+	params.sched_priority = sched_get_priority_max(SCHED_FIFO);
+	pthread_setschedparam(imu_interrupt_thread, SCHED_FIFO, &params);
+	return 0;
 }

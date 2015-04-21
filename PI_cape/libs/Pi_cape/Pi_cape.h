@@ -17,6 +17,8 @@
 // contains pid of current process
 #define LOCKFILE "/tmp/robotics.lock"
 
+mpudata_t mpu; //struct to read IMU data into
+
 typedef enum state_t {
 	UNINITIALIZED,
 	RUNNING,
