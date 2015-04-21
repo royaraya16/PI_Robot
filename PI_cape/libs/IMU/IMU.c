@@ -252,6 +252,7 @@ void* imu_interrupt_handler(void* ptr){
 	}
 	
 	gpio_fd_close(imu_gpio_fd);
+	printf("terminando IMU interrupt handler\n");
 	
 	return 0;	
 }
@@ -275,6 +276,7 @@ int mpu6050_read_dmp(mpudata_t *mpu)
 	}
 		
 	data_fusion(mpu);
+	mpu->phi = mpu->fusedEuler[VEC3_Y]*180.0/PI;
 
 	return 0;
 }

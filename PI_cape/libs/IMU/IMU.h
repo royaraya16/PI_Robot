@@ -72,7 +72,7 @@ typedef struct {
 	quaternion_t fusedQuat;
 	vector3d_t fusedEuler;
 
-	float Roll;
+	float phi;
 	
 } mpudata_t;
 
