@@ -58,21 +58,9 @@ int main(int argc, char *argv[]){
 			printf("Dropbone: %5.1f\tStrawson: %5.1f\n", 1.2, mpu.fusedEuler[VEC3_Y]*180.0/PI);
         }
     }
-	//Aqui termina el codigo del IMU----------------------------------------------------
 	
 	pi_cape_OFF();
 
-	return 0;
-}
-
-int init_IMU_thread(){
-	
-	set_imu_interrupt_func(&null_func);
-	pthread_t imu_interrupt_thread;
-	struct sched_param params;
-	pthread_create(&imu_interrupt_thread, NULL, imu_interrupt_handler, (void*) NULL);
-	params.sched_priority = sched_get_priority_max(SCHED_FIFO);
-	pthread_setschedparam(imu_interrupt_thread, SCHED_FIFO, &params);
 	return 0;
 }
 

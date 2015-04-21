@@ -1,23 +1,6 @@
 
 #include "Pi_cape/Pi_cape.h"
 
-enum state_t state = UNINITIALIZED;
-
-enum state_t get_state(){
-	return state;
-}
-
-int set_state(enum state_t new_state){
-	state = new_state;
-	return 0;
-}
-
-
-//function pointers for events initialized to null_func()
-//instead of containing a null pointer
-int null_func(){
-	return 0;
-}
 
 int pi_cape_ON(){
 	

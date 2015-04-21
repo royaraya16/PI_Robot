@@ -19,15 +19,7 @@
 
 mpudata_t mpu; //struct to read IMU data into
 
-typedef enum state_t {
-	UNINITIALIZED,
-	RUNNING,
-	PAUSED,
-	EXITING
-} state_t;
 
-enum state_t get_state();
-int set_state(enum state_t);
 
 int pi_cape_ON();
 

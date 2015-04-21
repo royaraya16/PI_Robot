@@ -25,7 +25,25 @@ unsigned char more[0];
 float angles[13];
         
 //funcion que se va a ejecutar cada vez que haya datos del IMU disponibles
-//int (*imu_interrupt_func)();
+int (*imu_interrupt_func)();
+
+//esto no deberia estar aqui - hacerse un .c y .h de state
+enum state_t state = UNINITIALIZED;
+
+enum state_t get_state(){
+	return state;
+}
+
+int set_state(enum state_t new_state){
+	state = new_state;
+	return 0;
+}
+//function pointers for events initialized to null_func()
+//instead of containing a null pointer
+//Esto tampoco
+int null_func(){
+	return 0;
+}
 
 int init_IMU(){
 	
@@ -242,7 +260,6 @@ int mpu6050_read_dmp(mpudata_t *mpu)
 {
 	short sensors;
 	unsigned char more;
-	float angles[13];
 
 	if (dmp_read_fifo(mpu->rawGyro, mpu->rawAccel, mpu->rawQuat, &mpu->dmpTimestamp, &sensors, &more) < 0) {
 		printf("dmp_read_fifo() failed\n");

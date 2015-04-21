@@ -31,6 +31,8 @@
 #include "inv_mpu.h"
 #include "GPIO/SimpleGPIO.h"
 #include "IMU/quaternion.h"
+#include <pthread.h>
+
 
 
 /* The following functions must be defined for this platform:
@@ -45,6 +47,17 @@
  * fabsf(float x)
  * min(int a, int b)
  */
+ 
+ typedef enum state_t {
+	UNINITIALIZED,
+	RUNNING,
+	PAUSED,
+	EXITING
+} state_t;
+
+enum state_t get_state();
+int set_state(enum state_t);
+int null_func();
 
 #define log_i printf
 
