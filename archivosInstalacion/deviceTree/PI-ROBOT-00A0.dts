@@ -68,7 +68,10 @@ Bit 0 /
 		"P9.23",	/*MDIR_2A*/
 		
 		"P9.25",	/*IMU_INT*/
-
+		
+		"P9.24",	/*BLUE_RX*/
+		"P9.26",	/*BLUE_TX*/
+		"blue1",
 		
 		"P9.35", 	/*V_DIV_BAT*/
 		"tscadc",
@@ -136,7 +139,17 @@ Bit 0 /
 					0x040 0x0F	/*P9.23 MDIR_2A*/
 					0x1b4 0x0F	/*P9.41 MOT_STBY*/
 				>;
-			};			
+			};	
+			
+			/****************************************/
+			/* 		SERIAL BLUETOOTH PINMUX	*/
+			/****************************************/
+			bb_uart1_pins: pinmux_bb_uart1_pins {
+			pinctrl-single,pins = <
+				0x180 0x12 /* uart1_rxd - PULLUP | MODE2 (DCAN TX) */
+				0x184 0x32 /* uart1_txd - RX_ENABLED | PULLUP | MODE2 (DCAN1 RX) */
+				>;
+			};		
 		};
 	};
 

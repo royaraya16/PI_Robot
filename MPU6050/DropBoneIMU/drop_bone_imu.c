@@ -80,10 +80,7 @@ int main(int argc, char** argv){
                 // check if the IMU has finished calibrating
                 time(&current_time);
                 // check if more than CALIBRATION_TIME seconds has passed since calibration started
-                if((fabs(last_euler[0]-angles[0]) < THRESHOLD
-                        && fabs(last_euler[1]-angles[1]) < THRESHOLD
-                        && fabs(last_euler[2]-angles[2]) < THRESHOLD)
-                        || difftime(current_time, sec) > CALIBRATION_TIME) {
+                if((fabs(last_euler[0]-angles[0]) < THRESHOLD && fabs(last_euler[1]-angles[1]) < THRESHOLD && fabs(last_euler[2]-angles[2]) < THRESHOLD) || difftime(current_time, sec) > CALIBRATION_TIME) {
                     if(!silent_flag) {
                         printf("\nCALIBRATED! Threshold: %f Elapsed time: %f\n", CALIBRATION_TIME, difftime(current_time, sec));
                         printf("CALIBRATED! Threshold: %.5f Errors: %.5f %.5f %.5f\n", THRESHOLD, fabs(last_euler[0]-angles[0]), last_euler[1]-angles[1], last_euler[2]-angles[2]);
@@ -91,6 +88,7 @@ int main(int argc, char** argv){
                     // the IMU has finished calibrating
                     int i;
                     quat_offset[0] = angles[9]; // treat the w value separately as it does not need to be reversed
+                    printf("Quad_Offset 1=%3.2f \t 2=%3.2f \t 3=%3.2f \t 4=%3.2f", quad_offset[0], quad_offset[1], quad_offset[2], quad_offset[3]);
                     for(i=1;i<4;++i){
                         quat_offset[i] = -angles[i+9];
                     }

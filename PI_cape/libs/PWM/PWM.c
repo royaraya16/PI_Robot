@@ -98,8 +98,15 @@ int set_motor(int motor, float duty){
 		duty=-duty;
 	}
 	
-	gpio_set_value(out_gpio_pins[(motor-1)*2],a);
-	gpio_set_value(out_gpio_pins[(motor-1)*2+1],b);
+	if (motor==1){
+		gpio_set_value(MDIR1A,a);
+		gpio_set_value(MDIR1B,b);
+	}
+	else{
+		gpio_set_value(MDIR2A,a);
+		gpio_set_value(MDIR2B,b);
+	}
+	
 	fprintf(pwm_duty_pointers[motor-1], "%d", (int)(duty*pwm_period_ns));	
 	fflush(pwm_duty_pointers[motor-1]);
 	return 0;

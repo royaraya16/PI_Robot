@@ -23,7 +23,7 @@ int pi_cape_ON(){
 	//init_interrupts();
 	
 	//Imprimir el estado actual de la bateria
-	//printf("Tensión Batería = %3.2f Volts\n", getBattVoltage());
+	printf("Tensión Batería = %3.2f Volts\n", getBattVoltage());
 	
 	//Desactivar motores por si las moscas
 	disable_motors();

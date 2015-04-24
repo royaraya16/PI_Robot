@@ -10,6 +10,9 @@ unsigned int out_gpio_pins[] =
 					 MOT_STBY, GRN_LED, RED_LED, LED_1,
 					 LED_2, LED_3, LED_4};
 
+unsigned int led_array[] = 
+					{LED_1, LED_2, LED_3, LED_4};
+					 
 int init_GPIO(){
 	
 	printf("Initializing GPIO\n");
