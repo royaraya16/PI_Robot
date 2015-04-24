@@ -20,8 +20,8 @@ short accel[3], gyro[3], sensors[1];
 long quat[4];
 unsigned long timestamp;
 unsigned char more[0];
-char str[15];
-char command[30];
+
+int i;
 
 int control();
 
@@ -49,18 +49,24 @@ int control(){
 				return -1;
 	}
 			
-	if(mpu.phi < -1){
+	/*if(mpu.phi < -1){
 		set_state(EXITING);
 		printf("saliendo del hilo del IMU\n");
 	}
+
+	rescale_l(mpu.rawQuat, mpu.scaled_rawQuat, QUAT_SCALE, 4);
+	q_multiply(scaled_quad_offset, mpu.scaled_rawQuat, mpu.calibratedQuat);
+	euler(mpu.calibratedQuat, mpu.angles);*/
 	
-	sprintf(str, "%5.1f\n", mpu.phi);
-	//sprintf(command, "echo '%s' > /dev/ttyO1\n", str);
+	//DEBUG POR BLUETOOTH
+	printf("%5.1f\n", mpu.phi);
 	
-	//system(command);
-		
-	printf("%s", str);
-	//printf("Raw_Gyro 0: %d 1: %d 2: %d\n", mpu.rawGyro[0], mpu.rawGyro[1], mpu.rawGyro[2]);
+	
+	/*printf("raw_quat: \n");
+	for(i=0; i<4; i++){
+		printf("%d: %f\n", i, mpu.angles[i]*180.0/PI);
+	}*/
+	
 	//set_motor(2, -0.5);
 	
 	//logica para los LEDS

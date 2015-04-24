@@ -22,6 +22,11 @@ long quat[4];
 unsigned long timestamp;
 unsigned char more[0];
 
+float scaled_quat_offset[4]; 
+
+char command[30];
+char str[15];
+
 //static float quad_offset[4]; //buscar el punto de equilibrio del robot y definir el offset aqui
         
 //funcion que se va a ejecutar cada vez que haya datos del IMU disponibles
@@ -80,6 +85,15 @@ int init_IMU(){
 
 	mpu_set_int_level(1); // Interrupt is low when firing
 	dmp_set_interrupt_mode(DMP_INT_CONTINUOUS); // Fire interrupt on new FIFO value
+	
+	
+	//VALORES PARA EL ROBOT EN SU POSICION NEUTRA
+	//para conseguirlos, descomentar el codigo en la funcion tratamiento_datos()
+	
+	scaled_quat_offset[0]=0.739776;
+	scaled_quat_offset[1]=-0.111959;
+	scaled_quat_offset[2]=0.656173;
+	scaled_quat_offset[3]=-0.098151;
 
     return 0;
 }
@@ -274,31 +288,31 @@ int mpu6050_read_dmp(mpudata_t *mpu)
 			return -1;
 		}
 	}
-	
-	//Codigo para reescalar los valores va a estar en una funcion llamada data scaling
-	/*
-	rescale_l(mpu->rawQuat, angles+9, QUAT_SCALE, 4);
-	
-	int i;
-	
-	//aqui hay que reemplazar angles por el valor de angles que el robot tiene en equilibrio
-	quat_offset[0] = angles[9]; // treat the w value separately as it does not need to be reversed
-	for(i=1;i<4;++i){
-		quat_offset[i] = -angles[i+9];
-	}
-	
-	 q_multiply(quat_offset, angles+9, angles+9); // multiply the current quaternstion by the offset caputured above to re-zero the values
-	// rescale the gyro and accel values received from the IMU from longs that the
-	// it uses for efficiency to the floats that they actually are and store these values in the angles array
-	rescale_s(gyro, angles+3, GYRO_SCALE, 3);
-	rescale_s(accel, angles+6, ACCEL_SCALE, 3);
-	// turn the quaternation (that is already in angles) into euler angles and store it in the angles array
-	euler(angles+9, angles);
-	*/
-		
-	data_fusion(mpu);
-	mpu->phi = mpu->fusedEuler[VEC3_Y]*180.0/PI;
+			
+	tratamiento_datos(mpu);
+	mpu->phi = mpu->dmp_euler[1]*180.0/PI;
 
+	return 0;
+}
+
+int tratamiento_datos(mpudata_t *mpu){
+	
+	float scaled_rawQuat[4];
+	float calibratedQuat[4];
+	
+	
+	rescale_l(mpu->rawQuat, scaled_rawQuat, QUAT_SCALE, 4);
+	q_multiply(scaled_quat_offset, scaled_rawQuat, calibratedQuat);
+	euler(calibratedQuat, mpu->dmp_euler);
+	
+	/*printf("raw_quat para el quat_offset: \n");
+	for(int i=0; i<4; i++){
+		printf("%d: %f ", i, scaled_rawQuat[i]);
+	}*/
+	
+	//sprintf(command, "echo '%s' > /dev/ttyO1\n", str);	
+	//system(command);
+	
 	return 0;
 }
 

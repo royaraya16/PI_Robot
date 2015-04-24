@@ -65,6 +65,8 @@ typedef struct {
 	short rawGyro[3];
 	short rawAccel[3];
 	long rawQuat[4];
+	
+	float dmp_euler[4];
 	unsigned long dmpTimestamp;
 
 	//short calibratedAccel[3];
@@ -112,5 +114,6 @@ void* imu_interrupt_handler(void* ptr);
 
 int data_ready();
 int mpu6050_read_dmp(mpudata_t *mpu);
+int tratamiento_datos(mpudata_t *mpu);
 int data_fusion(mpudata_t *mpu);
 int init_IMU_thread();
