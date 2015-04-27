@@ -18,12 +18,19 @@ int pi_cape_ON(){
 	
 	//inicializar IMU
 	init_IMU();
+	init_IMU_thread();
 	
 	//inicializar interrupts
 	//init_interrupts();
 	
 	//Imprimir el estado actual de la bateria
 	printf("Tensión Batería = %3.2f Volts\n", getBattVoltage());
+	
+	if(getBattVoltage() < 7.5){
+		printf("---BATERIA BAJA!!!---\n");
+		set_state(EXITING);
+		return -1;
+	}
 	
 	//Desactivar motores por si las moscas
 	disable_motors();
@@ -51,15 +58,13 @@ int pi_cape_OFF(){
 		fclose(fd);
 		remove(LOCKFILE);
 	}
-	 
-	//setGRN(0);
-	//setRED(0);	
+	
 	disable_motors();
+	turnOff_leds();
 	
 	printf("---------\nPI_ROBOT OFF\n---------\n");
 	
-	return 0;
-	
+	return 0;	
 }
 
 int checkProcess(){	

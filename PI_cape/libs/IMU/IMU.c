@@ -1,4 +1,5 @@
 #include "IMU/IMU.h"
+#include "Serial/Serial.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <linux/i2c-dev.h>
@@ -90,10 +91,10 @@ int init_IMU(){
 	//VALORES PARA EL ROBOT EN SU POSICION NEUTRA
 	//para conseguirlos, descomentar el codigo en la funcion tratamiento_datos()
 	
-	scaled_quat_offset[0]=0.739776;
-	scaled_quat_offset[1]=-0.111959;
-	scaled_quat_offset[2]=0.656173;
-	scaled_quat_offset[3]=-0.098151;
+	scaled_quat_offset[0]=0.691241;
+	scaled_quat_offset[1]=-0.008447;
+	scaled_quat_offset[2]=-0.695444;
+	scaled_quat_offset[3]=-0.004674;
 
     return 0;
 }
@@ -278,16 +279,16 @@ int mpu6050_read_dmp(mpudata_t *mpu)
 
 	if (dmp_read_fifo(mpu->rawGyro, mpu->rawAccel, mpu->rawQuat, &mpu->dmpTimestamp, &sensors, &more) < 0) {
 		printf("dmp_read_fifo() failed\n");
-		//return -1;
+		return -1;
 	}
 
-	while (more) {
+	/*while (more) {
 		// Fell behind, reading again
 		if (dmp_read_fifo(mpu->rawGyro, mpu->rawAccel, mpu->rawQuat, &mpu->dmpTimestamp, &sensors, &more) < 0) {
 			printf("dmp_read_fifo() failed_en More\n");
 			return -1;
 		}
-	}
+	}*/
 			
 	tratamiento_datos(mpu);
 	mpu->phi = mpu->dmp_euler[1]*180.0/PI;
@@ -305,36 +306,14 @@ int tratamiento_datos(mpudata_t *mpu){
 	q_multiply(scaled_quat_offset, scaled_rawQuat, calibratedQuat);
 	euler(calibratedQuat, mpu->dmp_euler);
 	
-	/*printf("raw_quat para el quat_offset: \n");
-	for(int i=0; i<4; i++){
-		printf("%d: %f ", i, scaled_rawQuat[i]);
-	}*/
+	//Imprimiendo valores en aplicacion  para calibracion
+	if(CALIBRATION_DEBUG){
+		if(get_state() == RUNNING){
+			sprintf(str, "E%f\n", scaled_rawQuat[2]);
+			SerialWrite(str);
+		}
+	}		
 	
-	//sprintf(command, "echo '%s' > /dev/ttyO1\n", str);	
-	//system(command);
-	
-	return 0;
-}
-
-int data_fusion(mpudata_t *mpu)
-{
-	quaternion_t dmpQuat;
-	vector3d_t dmpEuler;
-	
-	dmpQuat[QUAT_W] = (float)mpu->rawQuat[QUAT_W];
-	dmpQuat[QUAT_X] = (float)mpu->rawQuat[QUAT_X];
-	dmpQuat[QUAT_Y] = (float)mpu->rawQuat[QUAT_Y];
-	dmpQuat[QUAT_Z] = (float)mpu->rawQuat[QUAT_Z];
-
-	quaternionNormalize(dmpQuat);	
-	quaternionToEuler(dmpQuat, dmpEuler);
-
-	mpu->fusedEuler[VEC3_X] = dmpEuler[VEC3_X];
-	mpu->fusedEuler[VEC3_Y] = -dmpEuler[VEC3_Y];
-	mpu->fusedEuler[VEC3_Z] = 0;
-
-	eulerToQuaternion(mpu->fusedEuler, mpu->fusedQuat);
-
 	return 0;
 }
 

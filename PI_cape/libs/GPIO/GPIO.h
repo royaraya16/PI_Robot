@@ -16,3 +16,5 @@
 #define MDIR2A    7 	//gpio1.16  P9.23
 
 int init_GPIO();
+int turnOff_leds();
+int ledLogic();

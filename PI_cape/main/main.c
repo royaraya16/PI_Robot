@@ -12,29 +12,20 @@
 #include <stdio.h>
 #include <string.h>
 
-char *p;
-float num;
+char command[30];
 
-//variables del IMU
-short accel[3], gyro[3], sensors[1];
-long quat[4];
-unsigned long timestamp;
-unsigned char more[0];
-
-int i;
-
+float dutyCycle;
+float Kp = 0.0667;
 int control();
 
 int main(int argc, char *argv[]){
-	
+
 	pi_cape_ON();
-	
-	init_IMU_thread();
+	initSerial();
 	set_imu_interrupt_func(&control);
-	enable_motors();
 
     while (get_state() != EXITING){
-		usleep(100000);
+		usleep(10000);
     }
 	
 	pi_cape_OFF();
@@ -45,31 +36,53 @@ int main(int argc, char *argv[]){
 int control(){
 	
 	if (mpu6050_read_dmp(&mpu) != 0){
-				printf("Error leyendo DMP\n");
-				return -1;
+		printf("Error leyendo DMP\n");
+		return -1;
 	}
+	
+	switch(get_state()){
+		
+		case RUNNING:		
 			
-	/*if(mpu.phi < -1){
-		set_state(EXITING);
-		printf("saliendo del hilo del IMU\n");
-	}
-
-	rescale_l(mpu.rawQuat, mpu.scaled_rawQuat, QUAT_SCALE, 4);
-	q_multiply(scaled_quad_offset, mpu.scaled_rawQuat, mpu.calibratedQuat);
-	euler(mpu.calibratedQuat, mpu.angles);*/
-	
-	//DEBUG POR BLUETOOTH
-	printf("%5.1f\n", mpu.phi);
-	
-	
-	/*printf("raw_quat: \n");
-	for(i=0; i<4; i++){
-		printf("%d: %f\n", i, mpu.angles[i]*180.0/PI);
-	}*/
-	
-	//set_motor(2, -0.5);
-	
-	//logica para los LEDS
-	
+			if(mpu.phi < -15 || mpu.phi > 15){
+				set_state(PAUSED);
+				printf("Pausado\n");
+				break;
+			}
+			
+			//debug por terminal
+			//printf("%5.1f\n", mpu.phi);
+			
+			//graficando PHI
+			debugSerial(mpu.phi);
+			
+			dutyCycle = mpu.phi * Kp;
+			
+			set_motor(2, -dutyCycle);
+			set_motor(1, dutyCycle);
+			
+			ledLogic();
+		
+			break;
+		
+		case PAUSED:
+		
+			disable_motors();
+			
+			if(mpu.phi > -45 && mpu.phi < 45){
+				set_state(RUNNING);
+				enable_motors();
+				printf("Corriendo\n");
+			}
+			break;
+		
+		case EXITING:
+			return 0;
+			break;
+		
+		default:
+			break;
+		}
+		
 	return 0;	
 }

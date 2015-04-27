@@ -5,7 +5,9 @@
 #define MPU6050_ADDR 0x68
 #define MPU6050_WHO_AM_I 0x75
 
-#define DEFAULT_MPU_HZ 200
+#define DEFAULT_MPU_HZ 100
+
+#define CALIBRATION_DEBUG 0
 
 #define PI 3.14159
 #define QUAT_SCALE (1.0/1073741824)

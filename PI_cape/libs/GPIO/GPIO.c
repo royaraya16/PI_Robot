@@ -12,6 +12,9 @@ unsigned int out_gpio_pins[] =
 
 unsigned int led_array[] = 
 					{LED_1, LED_2, LED_3, LED_4};
+					
+int ledCount = 0;
+int countSign = 1;
 					 
 int init_GPIO(){
 	
@@ -30,6 +33,34 @@ int init_GPIO(){
 	// Desactivar el puente H, por si las moscas
 	
 	//gpio_set_value(MOT_STBY, LOW);
+	
+	return 0;
+}
+
+int turnOff_leds(){
+	int i;
+	for(i=0; i<4; i++){
+		gpio_set_value(led_array[i], LOW);
+	}
+	
+	return 0;
+}
+
+int ledLogic(){
+	
+	turnOff_leds();
+	
+	gpio_set_value(led_array[ledCount], HIGH);
+	
+	ledCount = ledCount + countSign;
+	
+	if(ledCount == 3){
+		countSign = -1;
+	}
+	
+	if(ledCount == 0){
+		countSign = 1;
+	}
 	
 	return 0;
 }

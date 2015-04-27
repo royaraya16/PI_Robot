@@ -1,1 +1,0 @@
-g++ filename.cpp -o executablename

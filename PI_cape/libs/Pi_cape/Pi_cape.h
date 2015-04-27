@@ -8,6 +8,7 @@
 #include "ADC/ADC.h"
 #include "eQEP/eQEP.h"
 #include "IMU/IMU.h"
+#include "Serial/Serial.h"
 #include <poll.h>
 #include <time.h>
 #include <math.h>		// atan2 and fabs
@@ -18,8 +19,6 @@
 #define LOCKFILE "/tmp/robotics.lock"
 
 mpudata_t mpu; //struct to read IMU data into
-
-
 
 int pi_cape_ON();
 
