@@ -5,6 +5,10 @@ cp install_files/SD-101C-00A0.dtbo /lib/firmware/SD-101C-00A0.dtbo
 # if you want to recompile yourself use this
 #dtc -O dtb -o /lib/firmware/SD-101C-00A0.dtbo -b 0 -@ install_files/SD-101C-00A0.dts
 
+# HDMI must be disabled to open pins for cape use
+
+
+# Now we must increase the I2C bus speed, this is done by tweaking the 
 # am335x-boneblack.dtb file. Modified versions are included with the installer
 # first make a backup copy, then pick which one to copy
 

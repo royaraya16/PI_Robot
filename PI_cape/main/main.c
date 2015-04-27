@@ -15,7 +15,7 @@
 char command[30];
 
 float dutyCycle;
-float Kp = 0.0667;
+float Kp = 0.15;
 int control();
 
 int main(int argc, char *argv[]){

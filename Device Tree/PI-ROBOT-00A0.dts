@@ -6,7 +6,7 @@
  
 /*
 
-pinmux control byte map encontrado en datasheet BLABLABLA buscar DerekMolloy
+pinmux control byte map encontrado en datasheet  buscar DerekMolloy
 Bit 5: 1 - Input, 0 - Output
 Bit 4: 1 - Pull up, 0 - Pull down
 Bit 3: 1 - Pull disabled, 0 - Pull enabled
@@ -69,9 +69,9 @@ Bit 0 /
 		
 		"P9.25",	/*IMU_INT*/
 		
-		"P9.24",	/*BLUE_RX*/
-		"P9.26",	/*BLUE_TX*/
-		"blue1",
+		"P9.24",	/*UART1_TX BLUETOOTH*/
+		"P9.26",	/*UART1_RX BLUETOOTH*/
+		"uart1",
 		
 		"P9.35", 	/*V_DIV_BAT*/
 		"tscadc",
@@ -146,8 +146,8 @@ Bit 0 /
 			/****************************************/
 			bb_uart1_pins: pinmux_bb_uart1_pins {
 			pinctrl-single,pins = <
-				0x180 0x12 /* uart1_rxd - PULLUP | MODE2 (DCAN TX) */
-				0x184 0x32 /* uart1_txd - RX_ENABLED | PULLUP | MODE2 (DCAN1 RX) */
+				0x180 0x10 /* uart1_rxd - PULLUP | MODE0 (UART1 RX) */
+				0x184 0x10 /* uart1_txd - RX_ENABLED | PULLUP | MODE0 (UART1 TX) */
 				>;
 			};		
 		};
@@ -273,8 +273,17 @@ Bit 0 /
 		};
 	};
 	
-	
 	fragment@12 {
+		target = <&uart2>;	/* really uart1 */
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "default";
+			pinctrl-0 = <&bb_uart1_pins>;
+		};
+	};
+	
+	
+	fragment@13 {
         target = <&ocp>;
         __overlay__ {            
             #address-cells = <1>;
@@ -299,7 +308,7 @@ Bit 0 /
     };
 
     
-    fragment@13 {
+    fragment@14 {
     	target = <&eqep1>;
     	__overlay__ {
             pinctrl-names = "default";
@@ -316,7 +325,7 @@ Bit 0 /
     	};
     };
 
-    fragment@14 {
+    fragment@15 {
     	target = <&eqep2>;
     	__overlay__ {
             pinctrl-names = "default";
