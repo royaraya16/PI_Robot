@@ -18,7 +18,19 @@
 // contains pid of current process
 #define LOCKFILE "/tmp/robotics.lock"
 
+ typedef enum flags_t {
+	DEBUG_BLUETOOTH,
+	CONTROL_REMOTO,
+	MOTORES_DESACTIVADOS,
+	CALIBRACION,
+	AYUDA
+} flags_t;
+
+
+
 mpudata_t mpu; //struct to read IMU data into
+
+int PI_flags[5];
 
 int pi_cape_ON();
 
@@ -27,3 +39,6 @@ void ctrl_c(int signo); // signal catcher
 int checkProcess();
 
 int pi_cape_OFF();
+
+void parse_args(int argc, char** argv);
+void print_usage();

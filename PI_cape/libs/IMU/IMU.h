@@ -5,7 +5,7 @@
 #define MPU6050_ADDR 0x68
 #define MPU6050_WHO_AM_I 0x75
 
-#define DEFAULT_MPU_HZ 100
+#define DEFAULT_MPU_HZ 200
 
 #define CALIBRATION_DEBUG 0
 
@@ -68,19 +68,23 @@ typedef struct {
 	short rawAccel[3];
 	long rawQuat[4];
 	
+	float last_euler[3];
+	
 	float dmp_euler[4];
 	unsigned long dmpTimestamp;
-
-	//short calibratedAccel[3];
 
 	quaternion_t fusedQuat;
 	vector3d_t fusedEuler;
 
 	float phi;
+	float last_phi;
+	float duty;
+	
+	int calibrated;
 	
 } mpudata_t;
 
-int init_IMU();
+int init_IMU(int calibration_flag);
 
 int i2c_write(unsigned char slave_addr, unsigned char reg_addr,
         unsigned char length, unsigned char const *data);

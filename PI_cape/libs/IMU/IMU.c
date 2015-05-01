@@ -51,7 +51,7 @@ int null_func(){
 	return 0;
 }
 
-int init_IMU(){
+int init_IMU(int calibration_flag){
 	
 	//set up gpio interrupt pin connected to imu
 	if(gpio_export(INTERRUPT_PIN)){
@@ -87,13 +87,14 @@ int init_IMU(){
 	mpu_set_int_level(1); // Interrupt is low when firing
 	dmp_set_interrupt_mode(DMP_INT_CONTINUOUS); // Fire interrupt on new FIFO value
 	
-	
-	//VALORES PARA EL ROBOT EN SU POSICION NEUTRA
-	//para conseguirlos, descomentar el codigo en la funcion tratamiento_datos()
+	/*if(calibration_flag){
+			mpu.last_euler = {99.9};
+	}*/
 	
 	scaled_quat_offset[0]=0.691241;
 	scaled_quat_offset[1]=-0.008447;
-	scaled_quat_offset[2]=-0.695444;
+	//scaled_quat_offset[2]=-0.695444;
+	scaled_quat_offset[2]=-0.654520;
 	scaled_quat_offset[3]=-0.004674;
 
     return 0;
@@ -281,12 +282,29 @@ int mpu6050_read_dmp(mpudata_t *mpu)
 		printf("dmp_read_fifo() failed\n");
 		return -1;
 	}
-
-	/*while (more) {
-		// Fell behind, reading again
-		if (dmp_read_fifo(mpu->rawGyro, mpu->rawAccel, mpu->rawQuat, &mpu->dmpTimestamp, &sensors, &more) < 0) {
-			printf("dmp_read_fifo() failed_en More\n");
-			return -1;
+	
+	/*if(calibration_flag){
+		advance_spinner(); // Heartbeat to let the user know we are running"
+		// check if the IMU has finished calibrating
+		time(&current_time);
+		// check if more than CALIBRATION_TIME seconds has passed since calibration started
+		if((fabs(mpu.last_euler[0]-angles[0]) < THRESHOLD
+				&& fabs(mpu.last_euler[1]-angles[1]) < THRESHOLD
+				&& fabs(mpu.last_euler[2]-angles[2]) < THRESHOLD)
+				|| difftime(current_time, sec) > CALIBRATION_TIME) {
+			
+			printf("\nCALIBRATED! Threshold: %f Elapsed time: %f\n", CALIBRATION_TIME, difftime(current_time, sec));
+			printf("CALIBRATED! Threshold: %.5f Errors: %.5f %.5f %.5f\n", THRESHOLD, fabs(last_euler[0]-angles[0]), last_euler[1]-angles[1], last_euler[2]-angles[2]);
+			
+			// the IMU has finished calibrating
+			int i;
+			quat_offset[0] = angles[9]; // treat the w value separately as it does not need to be reversed
+			for(i=1;i<4;++i){
+				quat_offset[i] = -angles[i+9];
+			}
+		}
+		else {
+			memcpy(last_euler, angles, 3*sizeof(float));
 		}
 	}*/
 			
@@ -312,7 +330,7 @@ int tratamiento_datos(mpudata_t *mpu){
 			sprintf(str, "E%f\n", scaled_rawQuat[2]);
 			SerialWrite(str);
 		}
-	}		
+	}
 	
 	return 0;
 }

@@ -12,24 +12,46 @@
 #include <stdio.h>
 #include <string.h>
 
-char command[30];
 
-float dutyCycle;
-float Kp = 0.15;
+
+float Kp = 0.135;
+float Ki = 0.005;
+float Kd = 0.02;
+
 int control();
+void* send_Serial(void* ptr);
+char uart1_directoryz[30] = "/dev/ttyO1";
+
+pthread_mutex_t mpu_mutex;
+
+float proporcional;
+float integral = 0;
+float diferencial;
 
 int main(int argc, char *argv[]){
-
+	parse_args(argc, argv);
+	
+	if(PI_flags[AYUDA]) {
+        print_usage();
+        return 0;
+    }
+	
 	pi_cape_ON();
 	initSerial();
 	set_imu_interrupt_func(&control);
-
+	
+	if(PI_flags[DEBUG_BLUETOOTH]){
+		pthread_t  serial_thread;
+		pthread_create(&serial_thread, NULL, send_Serial, (void*) NULL);
+	}
+	
     while (get_state() != EXITING){
-		usleep(10000);
+		usleep(100000);
     }
 	
 	pi_cape_OFF();
 	printf("Terminando el main\n");
+	
 	return 0;
 }
 
@@ -46,33 +68,35 @@ int control(){
 			
 			if(mpu.phi < -15 || mpu.phi > 15){
 				set_state(PAUSED);
-				printf("Pausado\n");
+				disable_motors();
 				break;
 			}
 			
-			//debug por terminal
-			//printf("%5.1f\n", mpu.phi);
-			
 			//graficando PHI
-			debugSerial(mpu.phi);
 			
-			dutyCycle = mpu.phi * Kp;
+			proporcional = mpu.phi * Kp;
+			integral = integral + mpu.phi * Ki;
+			diferencial = (mpu.phi - mpu.last_phi) * Kd;
 			
-			set_motor(2, -dutyCycle);
-			set_motor(1, dutyCycle);
+			mpu.last_phi = mpu.phi;			
+						
+			mpu.duty = proporcional + integral + diferencial;
+			
+			//set_motor(2, -mpu.duty);
+			//set_motor(1, mpu.duty);
 			
 			ledLogic();
 		
 			break;
 		
 		case PAUSED:
-		
-			disable_motors();
 			
 			if(mpu.phi > -45 && mpu.phi < 45){
 				set_state(RUNNING);
-				enable_motors();
-				printf("Corriendo\n");
+				
+				if(!PI_flags[MOTORES_DESACTIVADOS]){
+					enable_motors();
+				}
 			}
 			break;
 		
@@ -86,3 +110,25 @@ int control(){
 		
 	return 0;	
 }
+
+void* send_Serial(void* ptr){
+	
+	const int send_us = 20000; // dsm2 packets come in at 11ms, check faster
+	char str[30];
+	int fd;
+	fd = open(uart1_directoryz, O_RDWR | O_NOCTTY);
+	
+	while(get_state()!=EXITING){
+		
+		sprintf(str, "E%f,%f\n", mpu.phi , mpu.duty);		
+		write(fd, str, strlen(str));
+		usleep(send_us);
+	}
+	
+	close(fd);
+	printf("Saliendo Hilo Serial\n");
+	
+	return 0;
+}
+
+

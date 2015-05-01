@@ -7,5 +7,8 @@
 
 int initSerial();
 int SerialWrite(char message[]);
-int debugSerial(float phi);
+int debugSerial(float phi, float duty);
 
+void *readSerialControl(void *ptr);
+
+void *sendSerial(void *ptr);
