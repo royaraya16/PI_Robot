@@ -1235,7 +1235,6 @@ int dmp_read_fifo(short *gyro, short *accel, long *quat,
 
     /* Get a packet. */
     if (mpu_read_fifo_stream(dmp.packet_length, fifo_data, more)){
-        printf("Get a packet");
         return -1;
 	}
 
@@ -1273,7 +1272,6 @@ int dmp_read_fifo(short *gyro, short *accel, long *quat,
             /* Quaternion is outside of the acceptable threshold. */
             mpu_reset_fifo();
             sensors[0] = 0;
-            printf("Quaternion is outside of the acceptable threshold");
             return -1;
         }
         sensors[0] |= INV_WXYZ_QUAT;

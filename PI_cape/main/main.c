@@ -12,45 +12,28 @@
 #include <stdio.h>
 #include <string.h>
 
-
-
-float Kp = 0.135;
-float Ki = 0.005;
-float Kd = 0.02;
-
 int control();
-void* send_Serial(void* ptr);
-char uart1_directoryz[30] = "/dev/ttyO1";
 
-pthread_mutex_t mpu_mutex;
-
-float proporcional;
-float integral = 0;
-float diferencial;
 
 int main(int argc, char *argv[]){
+	
 	parse_args(argc, argv);
+	time(&mpu.sec);
 	
 	if(PI_flags[AYUDA]) {
         print_usage();
         return 0;
     }
-	
+  
 	pi_cape_ON();
-	initSerial();
+	setPID(0.15, 0, 0);	
 	set_imu_interrupt_func(&control);
 	
-	if(PI_flags[DEBUG_BLUETOOTH]){
-		pthread_t  serial_thread;
-		pthread_create(&serial_thread, NULL, send_Serial, (void*) NULL);
-	}
-	
-    while (get_state() != EXITING){
-		usleep(100000);
+    while (get_state() != EXITING){		
+		usleep(100000); //wait for 1 sec
     }
 	
 	pi_cape_OFF();
-	printf("Terminando el main\n");
 	
 	return 0;
 }
@@ -69,18 +52,17 @@ int control(){
 			if(mpu.phi < -15 || mpu.phi > 15){
 				set_state(PAUSED);
 				disable_motors();
+				turnOff_leds();
 				break;
 			}
 			
-			//graficando PHI
+			robot.proporcional = mpu.phi * robot.Kp;
+			robot.integral = robot.integral + mpu.phi * robot.Ki;
+			robot.diferencial = (mpu.phi - mpu.last_phi) * robot.Kd;
 			
-			proporcional = mpu.phi * Kp;
-			integral = integral + mpu.phi * Ki;
-			diferencial = (mpu.phi - mpu.last_phi) * Kd;
-			
-			mpu.last_phi = mpu.phi;			
+			mpu.last_phi = mpu.phi;
 						
-			mpu.duty = proporcional + integral + diferencial;
+			robot.duty = robot.proporcional + robot.integral + robot.diferencial;
 			
 			//set_motor(2, -mpu.duty);
 			//set_motor(1, mpu.duty);
@@ -99,6 +81,16 @@ int control(){
 				}
 			}
 			break;
+			
+		case UNINITIALIZED:
+			time(&mpu.current_time);
+			led_slowLogic();
+			if(difftime(mpu.current_time, mpu.sec) > 20){
+				set_state(PAUSED);
+				printf("Ya paso el tiempo de estabilizacion\n");
+			}
+			break;
+			
 		
 		case EXITING:
 			return 0;
@@ -109,26 +101,6 @@ int control(){
 		}
 		
 	return 0;	
-}
-
-void* send_Serial(void* ptr){
-	
-	const int send_us = 20000; // dsm2 packets come in at 11ms, check faster
-	char str[30];
-	int fd;
-	fd = open(uart1_directoryz, O_RDWR | O_NOCTTY);
-	
-	while(get_state()!=EXITING){
-		
-		sprintf(str, "E%f,%f\n", mpu.phi , mpu.duty);		
-		write(fd, str, strlen(str));
-		usleep(send_us);
-	}
-	
-	close(fd);
-	printf("Saliendo Hilo Serial\n");
-	
-	return 0;
 }
 
 

@@ -41,6 +41,7 @@ bibliotecas_native:
 
 copy:
 	scp $(NAME) beaglebone:/root
+	rm -rf bibliotecas/ $(NAME)
 
 clean:
 	rm -rf bibliotecas/ $(NAME)

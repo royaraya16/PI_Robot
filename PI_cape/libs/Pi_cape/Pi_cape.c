@@ -2,8 +2,6 @@
 #include "Pi_cape/Pi_cape.h"
 
 
-
-
 int pi_cape_ON(){
 	
 	//Chequear que no este corriendo el programa otra vez
@@ -22,21 +20,57 @@ int pi_cape_ON(){
 	init_IMU(PI_flags[CALIBRACION]);
 	init_IMU_thread();
 	
-	//inicializar interrupts
-	//init_interrupts();
+	//inicializar comunicacion serial
+	initSerial();
 	
-	//condicion inicial para el ultimo valor de phi
+	//Iniciar hilo serial de telemetria si la bandera esta activa
+		
+	if(PI_flags[DEBUG_BLUETOOTH]){
+		pthread_t  serial_thread;
+		pthread_create(&serial_thread, NULL, send_Serial, (void*) NULL);
+	}
+	
+	//estableciendo condiciones iniciales
 	mpu.last_phi = 0;
+	robot.integral = 0;
+	mpu.phi = 0;
+	mpu.last_euler[0] = 99.9;
+	mpu.last_euler[1] = 99.9;
+	mpu.last_euler[2] = 99.9;
+	
+	if(PI_flags[CALIBRACION]){
+		mpu.calibrated = 0;
+	}
+	
+	else{
+		FILE *cal2;
+		cal2 = fopen(IMU_CAL_FILE2, "r");
+		fscanf(cal2, "%f\n%f\n%f\n%f\n",  &mpu.scaled_quat_offset[0], &mpu.scaled_quat_offset[1], &mpu.scaled_quat_offset[2], &mpu.scaled_quat_offset[3]); 
+		fclose(cal2);	
+		mpu.calibrated = 1;
+	}
+	
+	robot.voltage = getBattVoltage();
 	
 	//Imprimir el estado actual de la bateria
-	printf("Tensión Batería = %3.2f Volts\n", getBattVoltage());
 	
-	/*if(getBattVoltage() < 7.5){
-		printf("---BATERIA BAJA!!!---\n");
-		set_state(EXITING);
-		return -1;
-	}*/
+	if(robot.voltage < 2){
+		printf("Conectado por USB\n");
+	}
 	
+	else if(robot.voltage < 6){
+		printf("Conectado con DC JACK\n");
+	}
+	
+	else{
+		printf("Batería Conectada\n");
+		printf("Tensión Batería = %3.2f Volts\n", robot.voltage);
+		if(robot.voltage < 7.5){
+			printf("---BATERIA BAJA!!!---\n");
+			set_state(EXITING);
+			return -1;
+		}
+	}
 	//Desactivar motores por si las moscas
 	disable_motors();
 	
@@ -44,8 +78,8 @@ int pi_cape_ON(){
 	printf("Enabling exit signal handler\n");
 	signal(SIGINT, ctrl_c);	
 	
-	//Estableciendo el estado en pausado, esperando que se posicione verticalmente
-	set_state(PAUSED);
+	//Estableciendo el estado en inicializado, esperando que el sensor se estabilice
+	set_state(UNINITIALIZED);
 	
 	printf("---------\nPI_ROBOT ON\n---------\n");
 	
@@ -135,4 +169,46 @@ void print_usage() {
     printf("-m\tCon motores desactivados\n");
     printf("-c\tModo de calibración\n"); //El modo de calibración va a guardar los datos obtenidos en un archivo para que no se deba calibrar cada vez que se ejecuta el programa
     printf("-h, -?\tImprimir esto, luego salir\n");
+}
+
+int setPID(float Kp, float Ki, float Kd){
+	
+	robot.Kp = Kp;
+	robot.Ki = Ki;
+	robot.Kd = Kd;
+	
+	return 0;
+}
+
+void* send_Serial(void* ptr){
+	
+	const int send_us = 40000; // enviar datos cada 40ms, si se mandan muy rapido la aplicacion se cae
+	char str[30];
+	int fd;
+	fd = open(UART_DIR, O_RDWR | O_NOCTTY);
+	
+	while(get_state()!=EXITING){
+		
+		sprintf(str, "E%f,%f\n", mpu.phi , robot.duty);		
+		write(fd, str, strlen(str));
+		usleep(send_us);
+	}
+	
+	close(fd);
+	printf("Saliendo Hilo Serial\n");
+	
+	return 0;
+}
+
+void* battery_monitor(void* ptr){
+	
+	//const int send_us = 4000000; // monitoreo cada 4s
+	
+	while(get_state()!=EXITING){
+		//cambiar los leds para que se prendan de acuerdo a la tension de la bateria
+	}
+	
+	printf("Saliendo Hilo Bateria\n");
+	
+	return 0;
 }

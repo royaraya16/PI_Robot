@@ -19,12 +19,14 @@
 
 #define ACCEL_SCALE (1.0/16384)
 
-#define THRESHOLD (0.1*PI/180.0) // the amount that the IMU Euler values have to change less than to indicate that calibration has finished
+#define THRESHOLD (0.0000001*PI/180.0) // the amount that the IMU Euler values have to change less than to indicate that calibration has finished
 
 #define CALIBRATION_TIME 20.0
 
 #define DEG_TO_RAD 		0.0174532925199
 #define RAD_TO_DEG 	 	57.295779513
+
+#define IMU_CAL_FILE	"imu.cal"
 
 //#define MAX_BUF 64
 #define MAX_BUF_IMU 1 //en dropbone estaba en 1
@@ -67,6 +69,9 @@ typedef struct {
 	short rawGyro[3];
 	short rawAccel[3];
 	long rawQuat[4];
+	float scaled_rawQuat[4];
+	
+	float scaled_quat_offset[4]; 
 	
 	float last_euler[3];
 	
@@ -78,9 +83,10 @@ typedef struct {
 
 	float phi;
 	float last_phi;
-	float duty;
 	
 	int calibrated;
+	
+	time_t sec, current_time;
 	
 } mpudata_t;
 
@@ -120,6 +126,5 @@ void* imu_interrupt_handler(void* ptr);
 
 int data_ready();
 int mpu6050_read_dmp(mpudata_t *mpu);
-int tratamiento_datos(mpudata_t *mpu);
 int data_fusion(mpudata_t *mpu);
 int init_IMU_thread();

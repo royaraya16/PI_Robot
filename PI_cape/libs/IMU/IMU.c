@@ -23,9 +23,6 @@ long quat[4];
 unsigned long timestamp;
 unsigned char more[0];
 
-float scaled_quat_offset[4]; 
-
-char command[30];
 char str[15];
 
 //static float quad_offset[4]; //buscar el punto de equilibrio del robot y definir el offset aqui
@@ -51,6 +48,8 @@ int null_func(){
 	return 0;
 }
 
+time_t sec, current_time; // set to the time before calibration
+
 int init_IMU(int calibration_flag){
 	
 	//set up gpio interrupt pin connected to imu
@@ -73,8 +72,8 @@ int init_IMU(int calibration_flag){
 	printf("MPU init: %i\n", mpu_init(&int_param));
 	printf("MPU sensor init: %i\n", mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL));
 	printf("MPU configure fifo: %i\n", mpu_configure_fifo(INV_XYZ_GYRO | INV_XYZ_ACCEL));
-	printf("DMP firmware: %i\n ",dmp_load_motion_driver_firmware());
-	printf("DMP orientation: %i\n ",dmp_set_orientation(
+	printf("DMP firmware: %i\n",dmp_load_motion_driver_firmware());
+	printf("DMP orientation: %i\n",dmp_set_orientation(
 		inv_orientation_matrix_to_scalar(gyro_orientation)));
 
     unsigned short dmp_features = DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_TAP | DMP_FEATURE_SEND_RAW_ACCEL | DMP_FEATURE_SEND_CAL_GYRO | DMP_FEATURE_GYRO_CAL;
@@ -87,15 +86,13 @@ int init_IMU(int calibration_flag){
 	mpu_set_int_level(1); // Interrupt is low when firing
 	dmp_set_interrupt_mode(DMP_INT_CONTINUOUS); // Fire interrupt on new FIFO value
 	
-	/*if(calibration_flag){
-			mpu.last_euler = {99.9};
-	}*/
-	
-	scaled_quat_offset[0]=0.691241;
+	/*scaled_quat_offset[0]=0.691241;
 	scaled_quat_offset[1]=-0.008447;
-	//scaled_quat_offset[2]=-0.695444;
 	scaled_quat_offset[2]=-0.654520;
-	scaled_quat_offset[3]=-0.004674;
+	scaled_quat_offset[3]=-0.004674;*/
+
+
+    time(&sec);
 
     return 0;
 }
@@ -268,7 +265,7 @@ void* imu_interrupt_handler(void* ptr){
 	}
 	
 	gpio_fd_close(imu_gpio_fd);
-	printf("terminando IMU interrupt handler\n");
+	printf("Saliendo Hilo IMU\n");
 	
 	return 0;	
 }
@@ -276,62 +273,59 @@ void* imu_interrupt_handler(void* ptr){
 int mpu6050_read_dmp(mpudata_t *mpu)
 {
 	short sensors;
-	unsigned char more;
+	unsigned char more;	
+	
+	
+	float calibratedQuat[4];
 
 	if (dmp_read_fifo(mpu->rawGyro, mpu->rawAccel, mpu->rawQuat, &mpu->dmpTimestamp, &sensors, &more) < 0) {
-		printf("dmp_read_fifo() failed\n");
 		return -1;
-	}
+	}	
 	
-	/*if(calibration_flag){
+	rescale_l(mpu->rawQuat, mpu->scaled_rawQuat, QUAT_SCALE, 4);
+	
+	//Para la calibracion
+	
+	if(!mpu->calibrated){
 		advance_spinner(); // Heartbeat to let the user know we are running"
-		// check if the IMU has finished calibrating
-		time(&current_time);
+		// chek if the IMU has finished calibrating
+		euler(mpu->scaled_rawQuat, mpu->dmp_euler);
+		
+		//fabs(mpu->last_euler[1]-mpu->dmp_euler[1]) < THRESHOLD
 		// check if more than CALIBRATION_TIME seconds has passed since calibration started
-		if((fabs(mpu.last_euler[0]-angles[0]) < THRESHOLD
-				&& fabs(mpu.last_euler[1]-angles[1]) < THRESHOLD
-				&& fabs(mpu.last_euler[2]-angles[2]) < THRESHOLD)
-				|| difftime(current_time, sec) > CALIBRATION_TIME) {
-			
-			printf("\nCALIBRATED! Threshold: %f Elapsed time: %f\n", CALIBRATION_TIME, difftime(current_time, sec));
-			printf("CALIBRATED! Threshold: %.5f Errors: %.5f %.5f %.5f\n", THRESHOLD, fabs(last_euler[0]-angles[0]), last_euler[1]-angles[1], last_euler[2]-angles[2]);
+		if(difftime(mpu->current_time, mpu->sec) > 20) {
+					
+			printf("CALIBRATED! Threshold: %.5f Errors: %.5f %.5f %.5f\n", THRESHOLD, fabs(mpu->last_euler[0]-mpu->dmp_euler[0]), mpu->last_euler[1]-mpu->dmp_euler[1], mpu->last_euler[2]-mpu->dmp_euler[2]);
 			
 			// the IMU has finished calibrating
 			int i;
-			quat_offset[0] = angles[9]; // treat the w value separately as it does not need to be reversed
-			for(i=1;i<4;++i){
-				quat_offset[i] = -angles[i+9];
-			}
-		}
-		else {
-			memcpy(last_euler, angles, 3*sizeof(float));
-		}
-	}*/
 			
-	tratamiento_datos(mpu);
-	mpu->phi = mpu->dmp_euler[1]*180.0/PI;
+			mpu->scaled_quat_offset[0] = mpu->scaled_rawQuat[0]; // treat the w value separately as it does not need to be reversed
+			
+			for(i=1;i<4;++i){
+				mpu->scaled_quat_offset[i] = -mpu->scaled_rawQuat[i];
+			}
+			
+			FILE *cal;
+			cal = fopen(IMU_CAL_FILE, "w");
+			fprintf(cal, "%f\n%f\n%f\n%f\n",  mpu->scaled_rawQuat[0], -mpu->scaled_rawQuat[1], -mpu->scaled_rawQuat[2], -mpu->scaled_rawQuat[3]); 
+			fclose(cal);	
+			
+			mpu->calibrated = 1;
+			set_state(EXITING);
+		}
 
-	return 0;
-}
-
-int tratamiento_datos(mpudata_t *mpu){
-	
-	float scaled_rawQuat[4];
-	float calibratedQuat[4];
-	
-	
-	rescale_l(mpu->rawQuat, scaled_rawQuat, QUAT_SCALE, 4);
-	q_multiply(scaled_quat_offset, scaled_rawQuat, calibratedQuat);
-	euler(calibratedQuat, mpu->dmp_euler);
-	
-	//Imprimiendo valores en aplicacion  para calibracion
-	if(CALIBRATION_DEBUG){
-		if(get_state() == RUNNING){
-			sprintf(str, "E%f\n", scaled_rawQuat[2]);
-			SerialWrite(str);
+		else{
+			memcpy(mpu->last_euler, mpu->dmp_euler, 3*sizeof(float));
 		}
 	}
 	
+	else{
+		q_multiply(mpu->scaled_quat_offset, mpu->scaled_rawQuat, calibratedQuat);
+		euler(calibratedQuat, mpu->dmp_euler);		
+		mpu->phi = mpu->dmp_euler[1]*180.0/PI;		
+	}	
+
 	return 0;
 }
 

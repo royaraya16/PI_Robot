@@ -5,10 +5,8 @@
 #include <string.h>
 #include <stdio.h>
 
+#define UART_DIR "/dev/ttyO1"
+
 int initSerial();
-int SerialWrite(char message[]);
-int debugSerial(float phi, float duty);
 
 void *readSerialControl(void *ptr);
-
-void *sendSerial(void *ptr);
