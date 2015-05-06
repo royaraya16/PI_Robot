@@ -26,8 +26,13 @@ int pi_cape_ON(){
 	//Iniciar hilo serial de telemetria si la bandera esta activa
 		
 	if(PI_flags[DEBUG_BLUETOOTH]){
-		pthread_t  serial_thread;
+		pthread_t serial_thread;
 		pthread_create(&serial_thread, NULL, send_Serial, (void*) NULL);
+	}
+	
+	if(PI_flags[CONTROL_REMOTO]){
+		pthread_t remote_thread;
+		pthread_create(&remote_thread, NULL, readSerialControl, (void*) NULL);
 	}
 	
 	//estableciendo condiciones iniciales
@@ -63,9 +68,12 @@ int pi_cape_ON(){
 	}
 	
 	else{
-		printf("Batería Conectada\n");
 		printf("Tensión Batería = %3.2f Volts\n", robot.voltage);
-		if(robot.voltage < 7.5){
+		
+		pthread_t battery_thread;
+		pthread_create(&battery_thread, NULL, battery_monitor, (void*) NULL);
+		
+		if(robot.voltage < 7.4){
 			printf("---BATERIA BAJA!!!---\n");
 			set_state(EXITING);
 			return -1;
@@ -180,6 +188,12 @@ int setPID(float Kp, float Ki, float Kd){
 	return 0;
 }
 
+int reset_PID(){
+	robot.integral = 0;
+	
+	return 0;
+}
+
 void* send_Serial(void* ptr){
 	
 	const int send_us = 40000; // enviar datos cada 40ms, si se mandan muy rapido la aplicacion se cae
@@ -202,13 +216,59 @@ void* send_Serial(void* ptr){
 
 void* battery_monitor(void* ptr){
 	
-	//const int send_us = 4000000; // monitoreo cada 4s
+	const int monitor_us = 1000000; // monitoreo cada 4s
 	
 	while(get_state()!=EXITING){
 		//cambiar los leds para que se prendan de acuerdo a la tension de la bateria
+		
+		if(get_state() == RUNNING || get_state() == PAUSED){
+			
+			
+			usleep(monitor_us);
+			if(robot.voltage > 8.1){
+				gpio_set_value(LED_1, HIGH);
+			}
+			
+			if(robot.voltage > 7.8){
+				gpio_set_value(LED_2, HIGH);
+			}
+			
+			if(robot.voltage > 7.5){
+				gpio_set_value(LED_3, HIGH);
+			}
+			
+			if(robot.voltage > 7.4){
+				gpio_set_value(LED_4, HIGH);
+			}
+			
+			turnOff_leds();
+		}
 	}
 	
 	printf("Saliendo Hilo Bateria\n");
+	
+	return 0;
+}
+
+void* readSerialControl(void *ptr){
+	
+	const int check_us = 100000; // dsm2 packets come in at 11ms, check faster
+	int ttyO1_fd, res;
+	//char buf[255];
+	
+	ttyO1_fd = open(UART_DIR, O_RDWR | O_NOCTTY);
+	
+	while(get_state()!=EXITING){
+		
+		//leer la vara serial y modificar la referencia o las constantes de Control
+		res = read(ttyO1_fd, robot.buffer, 255);
+        robot.buffer[res] = 0;             /* set end of string, so we can printf */
+        //printf("%s", buf);
+		// wait for the next frame
+		usleep(check_us); 
+	}
+	
+	close(ttyO1_fd);
 	
 	return 0;
 }

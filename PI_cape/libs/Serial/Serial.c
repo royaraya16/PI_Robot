@@ -31,17 +31,3 @@ int initSerial(){
 	
 	return 0;
 }
-
-void* readSerialControl(void *ptr){
-	const int check_us = 5000; // dsm2 packets come in at 11ms, check faster
-	
-	
-	while(get_state()!=EXITING){
-		
-		//leer la vara serial y modificar la referencia o las constantes de Control
-		
-		// wait for the next frame
-		usleep(check_us); 
-	}
-	return 0;
-}

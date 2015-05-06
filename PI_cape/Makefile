@@ -10,9 +10,6 @@ LFLAGS=-lm -lrt -pthread
 
 #tener cuidado con -fsingle-precision-constant a la hora de hacer operaciones matematicas
 
-# add -DI2C_DEBUG for debugging
-DEFS = -DEMPL_TARGET_LINUX -DMPU9150 -DAK8975_SECONDARY
-
 NAME=ejecutable
 
 cross: bibliotecas

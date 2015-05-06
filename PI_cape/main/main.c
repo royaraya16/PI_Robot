@@ -14,7 +14,6 @@
 
 int control();
 
-
 int main(int argc, char *argv[]){
 	
 	parse_args(argc, argv);
@@ -26,11 +25,12 @@ int main(int argc, char *argv[]){
     }
   
 	pi_cape_ON();
-	setPID(0.15, 0, 0);	
+	setPID(0.15, 0.005, 0.35);	
 	set_imu_interrupt_func(&control);
 	
     while (get_state() != EXITING){		
 		usleep(100000); //wait for 1 sec
+		printf("%s", robot.buffer);
     }
 	
 	pi_cape_OFF();
@@ -51,6 +51,7 @@ int control(){
 			
 			if(mpu.phi < -15 || mpu.phi > 15){
 				set_state(PAUSED);
+				reset_PID();
 				disable_motors();
 				turnOff_leds();
 				break;
@@ -64,10 +65,8 @@ int control(){
 						
 			robot.duty = robot.proporcional + robot.integral + robot.diferencial;
 			
-			//set_motor(2, -mpu.duty);
-			//set_motor(1, mpu.duty);
-			
-			ledLogic();
+			set_motor(1, -robot.duty);
+			set_motor(2, robot.duty);
 		
 			break;
 		
@@ -83,11 +82,12 @@ int control(){
 			break;
 			
 		case UNINITIALIZED:
+		
 			time(&mpu.current_time);
 			led_slowLogic();
+			
 			if(difftime(mpu.current_time, mpu.sec) > 20){
 				set_state(PAUSED);
-				printf("Ya paso el tiempo de estabilizacion\n");
 			}
 			break;
 			

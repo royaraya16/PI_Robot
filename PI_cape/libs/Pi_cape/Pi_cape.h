@@ -43,6 +43,8 @@ typedef struct {
 	float turn;
 	float voltage;
 	
+	char buffer[255];
+	
 } pi_robot_t;
 
 mpudata_t mpu; //struct to read IMU data into
@@ -62,5 +64,7 @@ void parse_args(int argc, char** argv);
 void print_usage();
 
 int setPID(float Kp, float Ki, float Kd);
+int reset_PID();
 void* send_Serial(void* ptr);
 void* battery_monitor(void* ptr);
+void* readSerialControl(void *ptr);
