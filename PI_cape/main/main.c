@@ -73,17 +73,20 @@ int control(){
 				break;
 			}
 			
+			robot.error = mpu.phi - robot.reference;
+			
 			//print para debug del control
 			//printf("Kp = %3.2f, Ki = %3.2f, Kd = %3.2f, Referencia = %3.2f\n", robot.Kp, robot.Ki, robot.Kd, robot.reference);
 			
 			//Se actualizan los valores del PID, dependiendo del error y las constantes del PID
 			
-			robot.proporcional = mpu.phi * robot.Kp;
-			robot.integral = robot.integral + mpu.phi * robot.Ki;
-			robot.diferencial = (mpu.phi - mpu.last_phi) * robot.Kd;
+			robot.proporcional = robot.error * robot.Kp;
+			robot.integral = robot.integral + robot.error * robot.Ki;
+			robot.diferencial = (robot.error - robot.last_error) * robot.Kd;
 			
 			//Se actualiza el ultimo valor del angulo para el termino diferencial
-			mpu.last_phi = mpu.phi;
+			//mpu.last_phi = mpu.phi;
+			robot.last_error = robot.error;
 			
 			//Actualizando el valor del ciclo de trabajo de los motores con el PID	
 			robot.duty = robot.proporcional + robot.integral + robot.diferencial;

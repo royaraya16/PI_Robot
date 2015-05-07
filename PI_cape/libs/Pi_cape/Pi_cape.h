@@ -48,6 +48,9 @@ typedef struct {
 	
 	float duty;
 	
+	float error;
+	float last_error;
+	
 	float reference;
 	float turn;
 	float voltage;

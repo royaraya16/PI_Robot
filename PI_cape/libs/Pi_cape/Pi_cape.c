@@ -37,8 +37,10 @@ int pi_cape_ON(){
 	
 	//estableciendo condiciones iniciales
 	mpu.last_phi = 0;
+	robot.last_error = 0;
 	robot.integral = 0;
 	mpu.phi = 0;
+	robot.error = 0;
 	mpu.last_euler[0] = 99.9;
 	mpu.last_euler[1] = 99.9;
 	mpu.last_euler[2] = 99.9;
@@ -287,7 +289,7 @@ void* readSerialControl(void *ptr){
 							break;
 						case SI:
 							//printf("termino i = %f\n", atof(tmp));
-							robot.Ki = map(atof(tmp), 0, 20, 0, 0.002);
+							robot.Ki = map(atof(tmp), 0, 20, 0, 0.02);
 							break;
 						case SD:
 							//printf("termino d = %f\n", atof(tmp));
