@@ -194,6 +194,13 @@ int reset_PID(){
 	return 0;
 }
 
+float map(float x, float in_min, float in_max, float out_min, float out_max){
+	
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+
+}
+
+
 void* send_Serial(void* ptr){
 	
 	const int send_us = 40000; // enviar datos cada 40ms, si se mandan muy rapido la aplicacion se cae
@@ -253,18 +260,81 @@ void* battery_monitor(void* ptr){
 void* readSerialControl(void *ptr){
 	
 	const int check_us = 100000; // dsm2 packets come in at 11ms, check faster
-	int ttyO1_fd, res;
-	//char buf[255];
+	int ttyO1_fd, res, i;
+	int state = WAITING;
+	int tempCount = 0;
+	char tmp[8]={0};
+	char sep1 = ';';
+	char sep2 = ',';
 	
 	ttyO1_fd = open(UART_DIR, O_RDWR | O_NOCTTY);
 	
 	while(get_state()!=EXITING){
 		
 		//leer la vara serial y modificar la referencia o las constantes de Control
-		res = read(ttyO1_fd, robot.buffer, 255);
-        robot.buffer[res] = 0;             /* set end of string, so we can printf */
-        //printf("%s", buf);
-		// wait for the next frame
+		res = read(ttyO1_fd, robot.buffer, 32);
+        if(res){
+			for(i = 0; i<res; i++){
+							
+				if(robot.buffer[i] == sep1){
+					
+					switch(state){
+						case WAITING:
+							break;						
+						case SP:
+							//printf("termino p = %f\n", atof(tmp));
+							robot.Kp = map(atof(tmp), 0, 20, 0, 1);
+							break;
+						case SI:
+							//printf("termino i = %f\n", atof(tmp));
+							robot.Ki = map(atof(tmp), 0, 20, 0, 0.002);
+							break;
+						case SD:
+							//printf("termino d = %f\n", atof(tmp));
+							robot.Kd = map(atof(tmp), 0, 20, 0, 1);
+							break;
+						case ST:
+							//printf("referencia = %f\n", atof(tmp));
+							robot.reference = map(atof(tmp), 150, 210, -2, 2);
+							break;
+						default:
+							break;
+					}
+					
+					state = WAITING;
+					//printf("%s\n", tmp);
+					memset(&tmp[0], 0, sizeof(tmp));
+					tempCount = 0;
+				}
+				
+				else if(robot.buffer[i] == sep2){ // caracteres SP, SI, SD o ST
+					//printf("%s\n", tmp);
+					
+					if(!strcmp(tmp, "SP"))
+						state = SP;
+						
+					else if(!strcmp(tmp, "SI"))
+						state = SI;
+						
+					else if(!strcmp(tmp, "SD"))
+						state = SD;
+						
+					else if(!strcmp(tmp, "SP"))
+						state = SP;
+					
+					else if(!strcmp(tmp, "ST"))
+						state = ST;
+						
+					memset(&tmp[0], 0, sizeof(tmp));
+					tempCount = 0;
+				}
+				
+				else{
+					tmp[tempCount] = robot.buffer[i];
+					tempCount++;
+				}
+			}
+		}
 		usleep(check_us); 
 	}
 	

@@ -27,6 +27,15 @@
 	AYUDA
 } flags_t;
 
+ typedef enum controlPID_t {
+	WAITING,
+	SP,
+	SI,
+	SD,
+	ST
+} controlPID_t;
+
+
 typedef struct {
 	
 	float Kp;
@@ -43,14 +52,15 @@ typedef struct {
 	float turn;
 	float voltage;
 	
-	char buffer[255];
+	char buffer[32];
 	
 } pi_robot_t;
 
 mpudata_t mpu; //struct to read IMU data into
 pi_robot_t robot;
 
-int PI_flags[5];
+//arreglos para usar las estructuras
+int PI_flags[5]; //usado en los flags que se mandan al iniciar el programa
 
 int pi_cape_ON();
 
@@ -63,6 +73,7 @@ int pi_cape_OFF();
 void parse_args(int argc, char** argv);
 void print_usage();
 
+float map(float x, float in_min, float in_max, float out_min, float out_max);
 int setPID(float Kp, float Ki, float Kd);
 int reset_PID();
 void* send_Serial(void* ptr);
