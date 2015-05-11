@@ -1,11 +1,46 @@
+/* Pi_cape.c
+ * 
+ * PI_ROBOT - PROYECTO CONTROL AUTOMATICO, I SEMESTRE 2015
+ * ESCUELA DE INGENIERIA ELECTRONICA, INSTITUTO TECNOLOGICO DE COSTA RICA
+ * 
+ * Modifications made by Roy Araya, Mechatronics Engineering Student
+ * royaraya16@gmail.com
+ * 
+ * Based on James Strawson's Robotics Cape code.
+ * 
+ 	
+Copyright (c) 2015, Roy Araya
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer. 
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The views and conclusions contained in the software and documentation are those
+of the authors and should not be interpreted as representing official policies, 
+either expressed or implied, of the FreeBSD Project.
+*/
 
 #include "Pi_cape/Pi_cape.h"
 
-
 int pi_cape_ON(){
-	
-	//Chequear que no este corriendo el programa otra vez
-	//checkProcess();
 	
 	//exportar e inicializar los GPIO
 	init_GPIO();
@@ -85,10 +120,9 @@ int pi_cape_ON(){
 	disable_motors();
 	
 	// Start Signal Handler
-	printf("Enabling exit signal handler\n");
 	signal(SIGINT, ctrl_c);	
 	
-	//Estableciendo el estado en inicializado, esperando que el sensor se estabilice
+	//Estableciendo el estado en UNITIALIZED, esperando que el sensor se estabilice
 	set_state(UNINITIALIZED);
 	
 	printf("---------\nPI_ROBOT ON\n---------\n");
@@ -97,16 +131,9 @@ int pi_cape_ON(){
 }
 
 int pi_cape_OFF(){
+	
 	set_state(EXITING);
-	usleep(500000); // let final threads clean up
-	FILE* fd;
-	// clean up the lockfile if it still exists
-	fd = fopen(LOCKFILE, "r");
-	if (fd != NULL) {
-		// close and delete the old file
-		fclose(fd);
-		remove(LOCKFILE);
-	}
+	usleep(500000); // dejando que los hilos terminen
 	
 	disable_motors();
 	turnOff_leds();
@@ -116,41 +143,10 @@ int pi_cape_OFF(){
 	return 0;	
 }
 
-int checkProcess(){	
-	FILE *fd; 			// opened and closed for each file
-	fd = fopen(LOCKFILE, "r");
-	if (fd != NULL) {
-		int old_pid;
-		fscanf(fd,"%d", &old_pid);
-		if(old_pid != 0){
-			printf("warning, shutting down existing robotics project\n");
-			kill((pid_t)old_pid, SIGINT);
-			sleep(1);
-		}
-		// close and delete the old file
-		fclose(fd);
-		remove(LOCKFILE);
-	}	
-	
-	// create new lock file with process id
-	fd = fopen(LOCKFILE, "ab+");
-	if (fd < 0) {
-		printf("\n error opening LOCKFILE for writing\n");
-		return -1;
-	}
-	pid_t current_pid = getpid();
-	printf("Current Process ID: %d\n", (int)current_pid);
-	fprintf(fd,"%d",(int)current_pid);
-	fflush(fd);
-	fclose(fd);
-	
-	return 0;	
-}
-
 void ctrl_c(int signo){
 	if (signo == SIGINT){
 		set_state(EXITING);
-		printf("\nreceived SIGINT Ctrl-C\n");
+		printf("\nCtrl-C - Saliendo\n");
  	}
 }
 
@@ -196,6 +192,7 @@ int reset_PID(){
 	return 0;
 }
 
+//funcion para escalar valores, tipo regla de 3
 float map(float x, float in_min, float in_max, float out_min, float out_max){
 	
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -212,7 +209,8 @@ void* send_Serial(void* ptr){
 	
 	while(get_state()!=EXITING){
 		
-		sprintf(str, "E%f,%f\n", mpu.phi , robot.duty);		
+		//sprintf(str, "E%f,%f\n", mpu.phi , robot.duty);
+		sprintf(str, "V,%3.2f,%3.2f,%3.2f\n", mpu.phi+180.0, robot.error, robot.Kd);			
 		write(fd, str, strlen(str));
 		usleep(send_us);
 	}
@@ -220,20 +218,87 @@ void* send_Serial(void* ptr){
 	close(fd);
 	printf("Saliendo Hilo Serial\n");
 	
+	/*
+	 *   if (sendPairConfirmation) {
+    sendPairConfirmation = false;
+
+    out->println(F("PC"));
+  } else if (sendPIDValues) {
+    sendPIDValues = false;
+
+    out->print(F("P,"));
+    out->print(cfg.P);
+    out->print(F(","));
+    out->print(cfg.I);
+    out->print(F(","));
+    out->print(cfg.D);
+    out->print(F(","));
+    out->println(cfg.targetAngle);
+  } else if (sendSettings) {
+    sendSettings = false;
+
+    out->print(F("S,"));
+    out->print(cfg.backToSpot);
+    out->print(F(","));
+    out->print(cfg.controlAngleLimit);
+    out->print(F(","));
+    out->println(cfg.turningLimit);
+  } else if (sendInfo) {
+    sendInfo = false;
+
+    out->print(F("I,"));
+    out->print(version);
+    out->print(F(","));
+    out->print(eepromVersion);
+
+#if defined(__AVR_ATmega644__)
+    out->println(F(",ATmega644"));
+#elif defined(__AVR_ATmega1284P__)
+    out->println(F(",ATmega1284P"));
+#else
+    out->println(F(",Unknown"));
+#endif
+  } else if (sendKalmanValues) {
+    sendKalmanValues = false;
+
+    out->print(F("K,"));
+    out->print(kalman.getQangle(), 4);
+    out->print(F(","));
+    out->print(kalman.getQbias(), 4);
+    out->print(F(","));
+    out->println(kalman.getRmeasure(), 4);
+  } else if (sendIMUValues && millis() - imuTimer > 50) { // Only send data every 50ms
+    imuTimer = millis();
+
+    out->print(F("V,"));
+    out->print(accAngle);
+    out->print(F(","));
+    out->print(gyroAngle);
+    out->print(F(","));
+    out->println(pitch);
+  } else if (sendStatusReport && millis() - reportTimer > 500) { // Send data every 500ms
+    reportTimer = millis();
+
+    out->print(F("R,"));
+    out->print(batteryVoltage);
+    out->print(F(","));
+    out->println((float)reportTimer / 60000.0f);
+  }
+  * 
+  * */
+	
 	return 0;
 }
 
 void* battery_monitor(void* ptr){
 	
-	const int monitor_us = 1000000; // monitoreo cada 4s
+	const int monitor_us = 4000000; // monitoreo cada 4s
 	
 	while(get_state()!=EXITING){
 		//cambiar los leds para que se prendan de acuerdo a la tension de la bateria
 		
 		if(get_state() == RUNNING || get_state() == PAUSED){
 			
-			
-			usleep(monitor_us);
 			if(robot.voltage > 8.1){
 				gpio_set_value(LED_1, HIGH);
 			}
@@ -252,6 +317,8 @@ void* battery_monitor(void* ptr){
 			
 			turnOff_leds();
 		}
+		
+		usleep(monitor_us);		
 	}
 	
 	printf("Saliendo Hilo Bateria\n");
@@ -284,19 +351,15 @@ void* readSerialControl(void *ptr){
 						case WAITING:
 							break;						
 						case SP:
-							//printf("termino p = %f\n", atof(tmp));
 							robot.Kp = map(atof(tmp), 0, 20, 0, 1);
 							break;
 						case SI:
-							//printf("termino i = %f\n", atof(tmp));
-							robot.Ki = map(atof(tmp), 0, 20, 0, 0.02);
+							robot.Ki = map(atof(tmp), 0, 20, 0, 0.1);
 							break;
 						case SD:
-							//printf("termino d = %f\n", atof(tmp));
-							robot.Kd = map(atof(tmp), 0, 20, 0, 1);
+							robot.Kd = map(atof(tmp), 0, 20, 0, 2);
 							break;
 						case ST:
-							//printf("referencia = %f\n", atof(tmp));
 							robot.reference = map(atof(tmp), 150, 210, -2, 2);
 							break;
 						default:
@@ -304,13 +367,11 @@ void* readSerialControl(void *ptr){
 					}
 					
 					state = WAITING;
-					//printf("%s\n", tmp);
 					memset(&tmp[0], 0, sizeof(tmp));
 					tempCount = 0;
 				}
 				
-				else if(robot.buffer[i] == sep2){ // caracteres SP, SI, SD o ST
-					//printf("%s\n", tmp);
+				else if(robot.buffer[i] == sep2){
 					
 					if(!strcmp(tmp, "SP"))
 						state = SP;
@@ -344,3 +405,22 @@ void* readSerialControl(void *ptr){
 	
 	return 0;
 }
+
+/*void* boton_handler(void* ptr){
+	int fd;
+    fd = open("/dev/input/event1", O_RDONLY);
+    struct input_event ev;
+	while (get_state() != EXITING){
+        read(fd, &ev, sizeof(struct input_event));
+		// uncomment printf to see how event codes work
+		// printf("type %i key %i state %i\n", ev.type, ev.code, ev.value); 
+        if(ev.type==1 && ev.code==1){ //only new data
+			if(ev.value == 1){
+				pause_btn_state = PRESSED;
+				(*pause_pressed_func)();
+			}
+		}
+		usleep(10000); // wait
+    }
+	return NULL;
+}*/

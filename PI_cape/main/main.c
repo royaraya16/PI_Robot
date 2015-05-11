@@ -1,4 +1,42 @@
-//Codigo para probar los GPIO
+/* PI_ROBOT.c
+ * 
+ * PI_ROBOT - PROYECTO CONTROL AUTOMATICO, I SEMESTRE 2015
+ * ESCUELA DE INGENIERIA ELECTRONICA, INSTITUTO TECNOLOGICO DE COSTA RICA
+ * 
+ * Made by Roy Araya, Mechatronics Engineering Student
+ * royaraya16@gmail.com
+ * 
+ * Special Thanks to James Strawson and Derek Molloy
+ * 
+ 	
+Copyright (c) 2015, Roy Araya
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer. 
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The views and conclusions contained in the software and documentation are those
+of the authors and should not be interpreted as representing official policies, 
+either expressed or implied, of the FreeBSD Project.
+*/
 
 #include "Pi_cape/Pi_cape.h"
 #include <errno.h>   // for errno
@@ -40,9 +78,10 @@ int main(int argc, char *argv[]){
 	//setPID(0.14, 0.005, 0.4); ya funciona otra vez
 	//setPID(0.14, 0.007, 0.45);
 	//setPID(0.14, 0.009, 0.5); siempre se tira el cabron
-	setPID(0.14, 0.019, 0.5);
+	setPID(0.1195, 0.00126, 0.778);
 	
 	set_imu_interrupt_func(&control);
+	
 	
     while (get_state() != EXITING){		
 		usleep(100000); //wait for 1 sec
@@ -60,6 +99,9 @@ int control(){
 		return -1;
 	}
 	
+	//printf("motor: %ld\n", get_encoder_pos(3)); encoder motor derecho
+
+	
 	switch(get_state()){
 		
 		case RUNNING:		
@@ -73,10 +115,8 @@ int control(){
 				break;
 			}
 			
-			robot.error = mpu.phi - robot.reference;
 			
-			//print para debug del control
-			//printf("Kp = %3.2f, Ki = %3.2f, Kd = %3.2f, Referencia = %3.2f\n", robot.Kp, robot.Ki, robot.Kd, robot.reference);
+			robot.error = mpu.phi - robot.reference;
 			
 			//Se actualizan los valores del PID, dependiendo del error y las constantes del PID
 			
@@ -84,8 +124,7 @@ int control(){
 			robot.integral = robot.integral + robot.error * robot.Ki;
 			robot.diferencial = (robot.error - robot.last_error) * robot.Kd;
 			
-			//Se actualiza el ultimo valor del angulo para el termino diferencial
-			//mpu.last_phi = mpu.phi;
+			//Se actualiza el ultimo valor del error para el termino diferencial
 			robot.last_error = robot.error;
 			
 			//Actualizando el valor del ciclo de trabajo de los motores con el PID	
@@ -99,7 +138,7 @@ int control(){
 		
 		case PAUSED:
 			
-			if(mpu.phi > -45 && mpu.phi < 45){
+			if(mpu.phi > -1 && mpu.phi < 1){
 				set_state(RUNNING);
 				mpu.last_phi = mpu.phi;
 				

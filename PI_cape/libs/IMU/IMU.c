@@ -1,31 +1,51 @@
+/* IMU.c
+ * 
+ * PI_ROBOT - PROYECTO CONTROL AUTOMATICO, I SEMESTRE 2015
+ * ESCUELA DE INGENIERIA ELECTRONICA, INSTITUTO TECNOLOGICO DE COSTA RICA
+ * 
+ * Made by Roy Araya, Mechatronics Engineering Student
+ * royaraya16@gmail.com
+ * 
+ * Based on Team 4774's Dropbone IMU code.
+ * 
+ 	
+Copyright (c) 2015, Roy Araya
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer. 
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The views and conclusions contained in the software and documentation are those
+of the authors and should not be interpreted as representing official policies, 
+either expressed or implied, of the FreeBSD Project.
+*/
+
 #include "IMU/IMU.h"
-#include "Serial/Serial.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <linux/i2c-dev.h>
-#include <unistd.h>
-#include <string.h>
-#include <fcntl.h>
-#include <math.h>
-#include <poll.h>
-#include <sys/ioctl.h>
-#include <time.h>
 
 
 static int fd; // file descriptor for the I2C bus
+
 static signed char gyro_orientation[9] = {0,  1,  0,
         -1, 0,  0,
         0,  0,  1};
-    
-        
-short accel[3], gyro[3], sensors[1];
-long quat[4];
-unsigned long timestamp;
-unsigned char more[0];
-
-char str[15];
-
-//static float quad_offset[4]; //buscar el punto de equilibrio del robot y definir el offset aqui
         
 //funcion que se va a ejecutar cada vez que haya datos del IMU disponibles
 int (*imu_interrupt_func)();
@@ -41,9 +61,7 @@ int set_state(enum state_t new_state){
 	state = new_state;
 	return 0;
 }
-//function pointers for events initialized to null_func()
-//instead of containing a null pointer
-//Esto tampoco
+
 int null_func(){
 	return 0;
 }
@@ -85,12 +103,6 @@ int init_IMU(int calibration_flag){
 
 	mpu_set_int_level(1); // Interrupt is low when firing
 	dmp_set_interrupt_mode(DMP_INT_CONTINUOUS); // Fire interrupt on new FIFO value
-	
-	/*scaled_quat_offset[0]=0.691241;
-	scaled_quat_offset[1]=-0.008447;
-	scaled_quat_offset[2]=-0.654520;
-	scaled_quat_offset[3]=-0.004674;*/
-
 
     time(&sec);
 
@@ -146,14 +158,6 @@ int q_multiply(float* q1, float* q2, float* result) {
 
 // rescale an array of longs by scale factor into an array of floats
 int rescale_l(long* input, float* output, float scale_factor, char length) {
-    int i;
-    for(i=0;i<length;++i)
-        output[i] = input[i] * scale_factor;
-    return 0;
-}
-
-// rescale an array of shorts by scale factor into an array of floats
-int rescale_s(short* input, float* output, float scale_factor, char length) {
     int i;
     for(i=0;i<length;++i)
         output[i] = input[i] * scale_factor;
@@ -287,15 +291,12 @@ int mpu6050_read_dmp(mpudata_t *mpu)
 	//Para la calibracion
 	
 	if(!mpu->calibrated){
-		advance_spinner(); // Heartbeat to let the user know we are running"
-		// chek if the IMU has finished calibrating
+		advance_spinner();
+		// check if the IMU has finished calibrating
 		euler(mpu->scaled_rawQuat, mpu->dmp_euler);
-		
-		//fabs(mpu->last_euler[1]-mpu->dmp_euler[1]) < THRESHOLD
-		// check if more than CALIBRATION_TIME seconds has passed since calibration started
 		if(difftime(mpu->current_time, mpu->sec) > 20) {
 					
-			printf("CALIBRATED! Threshold: %.5f Errors: %.5f %.5f %.5f\n", THRESHOLD, fabs(mpu->last_euler[0]-mpu->dmp_euler[0]), mpu->last_euler[1]-mpu->dmp_euler[1], mpu->last_euler[2]-mpu->dmp_euler[2]);
+			printf("CALIBRATED! Errors: %.5f %.5f %.5f\n", fabs(mpu->last_euler[0]-mpu->dmp_euler[0]), mpu->last_euler[1]-mpu->dmp_euler[1], mpu->last_euler[2]-mpu->dmp_euler[2]);
 			
 			// the IMU has finished calibrating
 			int i;
