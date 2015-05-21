@@ -73,7 +73,7 @@ either expressed or implied, of the FreeBSD Project.
 	SP,
 	SI,
 	SD,
-	ST
+	JOYSTICK
 } controlPID_t;
 
 
@@ -108,6 +108,10 @@ typedef struct {
 	float diferencial_encoder;
 	
 	char buffer[32];
+	
+	short joystick;
+	float jX;
+	float jY;
 	
 } pi_robot_t;
 

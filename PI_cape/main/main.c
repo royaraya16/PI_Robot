@@ -53,11 +53,12 @@ either expressed or implied, of the FreeBSD Project.
 #define PID_FILE	"PID.txt"
 
 //FILE *PID;
+int dropJoystick = 0;
 
 int control();
 
 int main(int argc, char *argv[]){
-	
+
 	parse_args(argc, argv);
 	time(&mpu.sec);
 	
@@ -66,24 +67,24 @@ int main(int argc, char *argv[]){
         return 0;
     }
     
-   // PID = fopen(PID_FILE, "w");
-	
-	
+   //PID = fopen(PID_FILE, "w");	
   
 	pi_cape_ON();
 
-	setPID(0.069800, 0.007080, 0.493500);
-	setEncoder_PID(0.00807, 0.00000395, 0.015575);
+	//setPID(0.069800, 0.007080, 0.493500);
+	setPID(0.087750,0.007680,0.610500);
+	//setEncoder_PID(0.00807, 0.00000395, 0.015575);
+	setEncoder_PID(0.010,0,0.06);
 	
 	set_imu_interrupt_func(&control);
 	
 	
     while (get_state() != EXITING){	
-		//fprintf(PID, "%f\n%f\n%f\n",  robot.Kp, robot.Ki, robot.Kd); 
+		//fprintf(PID, "%f,%f,%f\n",  robot.Kp, robot.Ki, robot.Kd); 
 		usleep(100000); //wait for 1 sec
     }
     
-    //fclose(PID);
+   // fclose(PID);
 	
 	pi_cape_OFF();
 	
@@ -98,9 +99,7 @@ int control(){
 	}
 	
 	robot.encoder = -1* get_encoder_pos(2);
-	
-	//printf("motor: %ld\n", get_encoder_pos(3)); encoder motor derecho
-
+	//printf("Jx= %f, Jy= %f\n", robot.jX, robot.jY);
 	
 	switch(get_state()){
 		
@@ -117,13 +116,29 @@ int control(){
 			
 			//Control de posicion
 			
-			robot.proporcional_encoder = robot.encoder * robot.Kp_encoder;
-			robot.integral_encoder = robot.integral_encoder + robot.encoder * robot.Ki_encoder;
-			robot.diferencial_encoder = (robot.encoder - robot.last_encoder) * robot.Kd_encoder;
+			if(robot.jX == 0 && robot.jY == 0){
+				
+				if(dropJoystick){
+					set_encoder_pos(2, 0);
+					dropJoystick = 0;
+				}
+				
+				robot.proporcional_encoder = robot.encoder * robot.Kp_encoder;
+				robot.integral_encoder = robot.integral_encoder + robot.encoder * robot.Ki_encoder;
+				robot.diferencial_encoder = (robot.encoder - robot.last_encoder) * robot.Kd_encoder;
+				
+				robot.last_encoder = robot.encoder;
+				
+				robot.reference = robot.proporcional_encoder + robot.integral_encoder + robot.diferencial_encoder;				
+			}
 			
-			robot.last_encoder = robot.encoder;
+			else{
+				robot.reference = map(robot.jY, -1, 1, -2, 2)-0.8;
+				if(!dropJoystick)
+					dropJoystick = 1;
+			}
 			
-			robot.reference = robot.proporcional_encoder + robot.integral_encoder + robot.diferencial_encoder;
+			
 			
 			//Control de angulo		
 			

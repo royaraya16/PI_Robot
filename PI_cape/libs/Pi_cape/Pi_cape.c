@@ -83,9 +83,8 @@ int pi_cape_ON(){
 	mpu.phi = 0;
 	robot.error = 0;
 	robot.reference = 0;
-	mpu.last_euler[0] = 99.9;
-	mpu.last_euler[1] = 99.9;
-	mpu.last_euler[2] = 99.9;
+	robot.jX = 0;
+	robot.jY = 0;
 	
 	if(PI_flags[CALIBRACION]){
 		mpu.calibrated = 0;
@@ -140,7 +139,7 @@ int pi_cape_ON(){
 int pi_cape_OFF(){
 	
 	set_state(EXITING);
-	usleep(500000); // dejando que los hilos terminen
+	usleep(900000); // dejando que los hilos terminen
 	
 	disable_motors();
 	turnOff_leds();
@@ -281,6 +280,7 @@ void* readSerialControl(void *ptr){
 	int ttyO1_fd, res, i;
 	int state = WAITING;
 	int tempCount = 0;
+	int ready = 0;
 	char tmp[8]={0};
 	char sep1 = ';';
 	char sep2 = ',';
@@ -297,22 +297,24 @@ void* readSerialControl(void *ptr){
 				if(robot.buffer[i] == sep1){
 					
 					switch(state){
-						case WAITING:
+						case WAITING:						
+							robot.jX = 0;
+							robot.jY = 0;
 							break;						
 						case SP:
-							robot.Kp = map(atof(tmp), 0, 20, 0, 0.1);
-							//robot.Kp_encoder = map(atof(tmp), 0, 20, 0, 0.03);
+							//robot.Kp = map(atof(tmp), 0, 20, 0, 0.1);
+							robot.Kp_encoder = map(atof(tmp), 0, 20, 0, 0.02);
 							break;
 						case SI:
-							robot.Ki = map(atof(tmp), 0, 20, 0, 0.01);
-							//robot.Ki_encoder = map(atof(tmp), 0, 20, 0, 0.0001);
+							//robot.Ki = map(atof(tmp), 0, 20, 0, 0.01);
+							robot.Ki_encoder = map(atof(tmp), 0, 20, 0, 0.0001);
 							break;
 						case SD:
-							robot.Kd = map(atof(tmp), 0, 20, 0, 1);
-							//robot.Kd_encoder = map(atof(tmp), 0, 20, 0, 0.05);
+							//robot.Kd = map(atof(tmp), 0, 20, 0, 1);
+							robot.Kd_encoder = map(atof(tmp), 0, 20, 0, 0.1);
 							break;
-						case ST:
-							//robot.reference = map(atof(tmp), 150, 210, -4, 4);
+						case JOYSTICK:
+							robot.jY = atof(tmp);
 							break;
 						default:
 							break;
@@ -324,6 +326,12 @@ void* readSerialControl(void *ptr){
 				}
 				
 				else if(robot.buffer[i] == sep2){
+					
+					if(ready){
+						robot.jX = atof(tmp);
+						ready = 0;
+						state = JOYSTICK;					
+					}
 					
 					if(!strcmp(tmp, "SP"))
 						state = SP;
@@ -337,8 +345,10 @@ void* readSerialControl(void *ptr){
 					else if(!strcmp(tmp, "SP"))
 						state = SP;
 					
-					else if(!strcmp(tmp, "ST"))
-						state = ST;
+					else if(!strcmp(tmp, "CJ")){
+						state = JOYSTICK;
+						ready = 1;
+					}
 						
 					memset(&tmp[0], 0, sizeof(tmp));
 					tempCount = 0;
