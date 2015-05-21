@@ -146,8 +146,8 @@ Bit 0 /
 			/****************************************/
 			bb_uart1_pins: pinmux_bb_uart1_pins {
 			pinctrl-single,pins = <
-				0x180 0x20 /* uart1_rxd - PULLUP | MODE0 (UART1 RX) */
-				0x184 0x20 /* uart1_txd - RX_ENABLED | PULLUP | MODE0 (UART1 TX) */
+				0x180 0x10 /* uart1_rxd - PULLUP | MODE0 (UART1 RX) */
+				0x184 0x10 /* uart1_txd - RX_ENABLED | PULLUP | MODE0 (UART1 TX) */
 				>;
 			};		
 		};

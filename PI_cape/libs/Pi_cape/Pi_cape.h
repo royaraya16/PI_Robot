@@ -48,6 +48,8 @@ either expressed or implied, of the FreeBSD Project.
 #include "eQEP/eQEP.h"
 #include "IMU/IMU.h"
 #include "Serial/Serial.h"
+#include <getopt.h>
+#include <linux/input.h>
 #include <poll.h>
 #include <time.h>
 #include <math.h>		// atan2 and fabs
@@ -94,6 +96,17 @@ typedef struct {
 	float turn;
 	float voltage;
 	
+	long int encoder;
+	long int last_encoder;
+	
+	float Kp_encoder;
+	float Ki_encoder;
+	float Kd_encoder;
+	
+	float proporcional_encoder;
+	float integral_encoder;
+	float diferencial_encoder;
+	
 	char buffer[32];
 	
 } pi_robot_t;
@@ -115,7 +128,10 @@ void print_usage();
 
 float map(float x, float in_min, float in_max, float out_min, float out_max);
 int setPID(float Kp, float Ki, float Kd);
+int setEncoder_PID(float Kp, float Ki, float Kd);
 int reset_PID();
+
 void* send_Serial(void* ptr);
 void* battery_monitor(void* ptr);
 void* readSerialControl(void *ptr);
+void* boton_handler(void* ptr);

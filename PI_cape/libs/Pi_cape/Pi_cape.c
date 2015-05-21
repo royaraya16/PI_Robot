@@ -58,6 +58,10 @@ int pi_cape_ON(){
 	//inicializar comunicacion serial
 	initSerial();
 	
+	//Funcion para terminar el programa con el boton
+	pthread_t button_thread;
+	pthread_create(&button_thread, NULL, boton_handler, (void*) NULL);
+	
 	//Iniciar hilo serial de telemetria si la bandera esta activa
 		
 	if(PI_flags[DEBUG_BLUETOOTH]){
@@ -74,8 +78,11 @@ int pi_cape_ON(){
 	mpu.last_phi = 0;
 	robot.last_error = 0;
 	robot.integral = 0;
+	robot.integral_encoder = 0;
+	robot.last_encoder = 0;
 	mpu.phi = 0;
 	robot.error = 0;
+	robot.reference = 0;
 	mpu.last_euler[0] = 99.9;
 	mpu.last_euler[1] = 99.9;
 	mpu.last_euler[2] = 99.9;
@@ -186,9 +193,20 @@ int setPID(float Kp, float Ki, float Kd){
 	return 0;
 }
 
+int setEncoder_PID(float Kp, float Ki, float Kd){
+	
+	robot.Kp_encoder = Kp;
+	robot.Ki_encoder = Ki;
+	robot.Kd_encoder = Kd;
+	
+	return 0;
+}
+
 int reset_PID(){
 	robot.integral = 0;
-	
+	robot.integral_encoder = 0;
+	robot.last_encoder = 0;
+	//robot.last_error = 0;
 	return 0;
 }
 
@@ -210,7 +228,7 @@ void* send_Serial(void* ptr){
 	while(get_state()!=EXITING){
 		
 		//sprintf(str, "E%f,%f\n", mpu.phi , robot.duty);
-		sprintf(str, "V,%3.2f,%3.2f,%3.2f\n", mpu.phi+180.0, robot.error, robot.Kd);			
+		sprintf(str, "E%3.2f,%3.2f,%3.2f\n", robot.duty, robot.Kd, robot.Ki);			
 		write(fd, str, strlen(str));
 		usleep(send_us);
 	}
@@ -218,81 +236,12 @@ void* send_Serial(void* ptr){
 	close(fd);
 	printf("Saliendo Hilo Serial\n");
 	
-	/*
-	 *   if (sendPairConfirmation) {
-    sendPairConfirmation = false;
-
-    out->println(F("PC"));
-  } else if (sendPIDValues) {
-    sendPIDValues = false;
-
-    out->print(F("P,"));
-    out->print(cfg.P);
-    out->print(F(","));
-    out->print(cfg.I);
-    out->print(F(","));
-    out->print(cfg.D);
-    out->print(F(","));
-    out->println(cfg.targetAngle);
-  } else if (sendSettings) {
-    sendSettings = false;
-
-    out->print(F("S,"));
-    out->print(cfg.backToSpot);
-    out->print(F(","));
-    out->print(cfg.controlAngleLimit);
-    out->print(F(","));
-    out->println(cfg.turningLimit);
-  } else if (sendInfo) {
-    sendInfo = false;
-
-    out->print(F("I,"));
-    out->print(version);
-    out->print(F(","));
-    out->print(eepromVersion);
-
-#if defined(__AVR_ATmega644__)
-    out->println(F(",ATmega644"));
-#elif defined(__AVR_ATmega1284P__)
-    out->println(F(",ATmega1284P"));
-#else
-    out->println(F(",Unknown"));
-#endif
-  } else if (sendKalmanValues) {
-    sendKalmanValues = false;
-
-    out->print(F("K,"));
-    out->print(kalman.getQangle(), 4);
-    out->print(F(","));
-    out->print(kalman.getQbias(), 4);
-    out->print(F(","));
-    out->println(kalman.getRmeasure(), 4);
-  } else if (sendIMUValues && millis() - imuTimer > 50) { // Only send data every 50ms
-    imuTimer = millis();
-
-    out->print(F("V,"));
-    out->print(accAngle);
-    out->print(F(","));
-    out->print(gyroAngle);
-    out->print(F(","));
-    out->println(pitch);
-  } else if (sendStatusReport && millis() - reportTimer > 500) { // Send data every 500ms
-    reportTimer = millis();
-
-    out->print(F("R,"));
-    out->print(batteryVoltage);
-    out->print(F(","));
-    out->println((float)reportTimer / 60000.0f);
-  }
-  * 
-  * */
-	
 	return 0;
 }
 
 void* battery_monitor(void* ptr){
 	
-	const int monitor_us = 4000000; // monitoreo cada 4s
+	const int monitor_us = 1000000; // monitoreo cada 4s
 	
 	while(get_state()!=EXITING){
 		//cambiar los leds para que se prendan de acuerdo a la tension de la bateria
@@ -351,16 +300,19 @@ void* readSerialControl(void *ptr){
 						case WAITING:
 							break;						
 						case SP:
-							robot.Kp = map(atof(tmp), 0, 20, 0, 1);
+							robot.Kp = map(atof(tmp), 0, 20, 0, 0.1);
+							//robot.Kp_encoder = map(atof(tmp), 0, 20, 0, 0.03);
 							break;
 						case SI:
-							robot.Ki = map(atof(tmp), 0, 20, 0, 0.1);
+							robot.Ki = map(atof(tmp), 0, 20, 0, 0.01);
+							//robot.Ki_encoder = map(atof(tmp), 0, 20, 0, 0.0001);
 							break;
 						case SD:
-							robot.Kd = map(atof(tmp), 0, 20, 0, 2);
+							robot.Kd = map(atof(tmp), 0, 20, 0, 1);
+							//robot.Kd_encoder = map(atof(tmp), 0, 20, 0, 0.05);
 							break;
 						case ST:
-							robot.reference = map(atof(tmp), 150, 210, -2, 2);
+							//robot.reference = map(atof(tmp), 150, 210, -4, 4);
 							break;
 						default:
 							break;
@@ -406,7 +358,7 @@ void* readSerialControl(void *ptr){
 	return 0;
 }
 
-/*void* boton_handler(void* ptr){
+void* boton_handler(void* ptr){
 	int fd;
     fd = open("/dev/input/event1", O_RDONLY);
     struct input_event ev;
@@ -416,11 +368,12 @@ void* readSerialControl(void *ptr){
 		// printf("type %i key %i state %i\n", ev.type, ev.code, ev.value); 
         if(ev.type==1 && ev.code==1){ //only new data
 			if(ev.value == 1){
-				pause_btn_state = PRESSED;
-				(*pause_pressed_func)();
+				set_state(EXITING);
 			}
 		}
 		usleep(10000); // wait
     }
+    
+    printf("Saliendo hilo del boton\n");
 	return NULL;
-}*/
+}

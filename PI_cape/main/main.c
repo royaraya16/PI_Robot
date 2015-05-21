@@ -50,6 +50,10 @@ either expressed or implied, of the FreeBSD Project.
 #include <stdio.h>
 #include <string.h>
 
+#define PID_FILE	"PID.txt"
+
+//FILE *PID;
+
 int control();
 
 int main(int argc, char *argv[]){
@@ -61,31 +65,25 @@ int main(int argc, char *argv[]){
         print_usage();
         return 0;
     }
+    
+   // PID = fopen(PID_FILE, "w");
+	
+	
   
 	pi_cape_ON();
-	//setPID(0.15, 0.005, 0.35); oscila un poco y jala hacia el lado de la bateria
-	//setPID(0.2, 0.005, 0.35); oscila un poco mas pero dura mas tiempo de pie
-	//con mas P mas oscilacion . con mas I mas velocidad
-	//setPID(0.2, 0.01, 0.35); oscila con mas velocidad
-	//setPID(0.2, 0.01, 0.30); menos D satura el business
-	//setPID(0.2, 0.01, 0.4); con mas D aumenta el equilibriopz
-	//setPID(0.15, 0.01, 0.4); muy lindis pero se va para el lado de la bateria
-	//setPID(0.13, 0.01, 0.4); se tira para el lado del beagle
-	//setPID(0.14, 0.01, 0.4); se va hacia la bateria pero no hay oscilacion
-	//setPID(0.135, 0.01, 0.4); se va para el beagle de nuevo ARGH
-	//setPID(0.14, 0.02, 0.4); se satura
-	//setPID(0.14, 0.01, 0.4); esta raro
-	//setPID(0.14, 0.005, 0.4); ya funciona otra vez
-	//setPID(0.14, 0.007, 0.45);
-	//setPID(0.14, 0.009, 0.5); siempre se tira el cabron
-	setPID(0.1195, 0.00126, 0.778);
+
+	setPID(0.069800, 0.007080, 0.493500);
+	setEncoder_PID(0.00807, 0.00000395, 0.015575);
 	
 	set_imu_interrupt_func(&control);
 	
 	
-    while (get_state() != EXITING){		
+    while (get_state() != EXITING){	
+		//fprintf(PID, "%f\n%f\n%f\n",  robot.Kp, robot.Ki, robot.Kd); 
 		usleep(100000); //wait for 1 sec
     }
+    
+    //fclose(PID);
 	
 	pi_cape_OFF();
 	
@@ -99,6 +97,8 @@ int control(){
 		return -1;
 	}
 	
+	robot.encoder = -1* get_encoder_pos(2);
+	
 	//printf("motor: %ld\n", get_encoder_pos(3)); encoder motor derecho
 
 	
@@ -107,7 +107,7 @@ int control(){
 		case RUNNING:		
 			
 			//Se pregunta si el robot esta apunto de caerse para desconectar motores
-			if(mpu.phi < -15 || mpu.phi > 15){
+			if(mpu.phi < -45 || mpu.phi > 45){
 				set_state(PAUSED);
 				reset_PID();
 				disable_motors();
@@ -115,10 +115,19 @@ int control(){
 				break;
 			}
 			
+			//Control de posicion
+			
+			robot.proporcional_encoder = robot.encoder * robot.Kp_encoder;
+			robot.integral_encoder = robot.integral_encoder + robot.encoder * robot.Ki_encoder;
+			robot.diferencial_encoder = (robot.encoder - robot.last_encoder) * robot.Kd_encoder;
+			
+			robot.last_encoder = robot.encoder;
+			
+			robot.reference = robot.proporcional_encoder + robot.integral_encoder + robot.diferencial_encoder;
+			
+			//Control de angulo		
 			
 			robot.error = mpu.phi - robot.reference;
-			
-			//Se actualizan los valores del PID, dependiendo del error y las constantes del PID
 			
 			robot.proporcional = robot.error * robot.Kp;
 			robot.integral = robot.integral + robot.error * robot.Ki;
@@ -141,6 +150,7 @@ int control(){
 			if(mpu.phi > -1 && mpu.phi < 1){
 				set_state(RUNNING);
 				mpu.last_phi = mpu.phi;
+				set_encoder_pos(2, 0);
 				
 				if(!PI_flags[MOTORES_DESACTIVADOS]){
 					enable_motors();
